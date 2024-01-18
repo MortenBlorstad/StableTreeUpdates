@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 # StableTreeUpdates
-=======
-# StableTrees
 
 ## Installation
 
@@ -28,4 +25,4 @@ Then StableTrees is installable in editable mode by
 ```
 pip install -e ./python-package
 ```
->>>>>>> master
+
