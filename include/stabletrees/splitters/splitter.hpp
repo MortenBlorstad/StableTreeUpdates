@@ -6,9 +6,6 @@
 //#include <C:\Users\mb-92\OneDrive\Skrivebord\studie\StableTrees\cpp\thirdparty\eigen\Eigen/Dense>
 #include <Eigen/Dense>
 #include <unordered_set>
-#include "MSE.hpp"
-#include "criterion.hpp"
-#include "poisson.hpp"
 #include "cir.hpp"
 #include "gumbel.hpp"
 #include "utils.hpp"
