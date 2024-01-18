@@ -92,12 +92,13 @@ models = {
                         "SLABU7": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.25, beta=1.1),
                         "SLABU8": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.25, beta=1.25),
                         "SLABU9": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.25, beta = 1.5),
-
-                
                 }
 stability_all = {name:[] for name in models.keys()}
 standard_stability_all= {name:[] for name in models.keys()}
 mse_all= {name:[] for name in models.keys()}
+
+
+
 
 compute = False
 if compute:
@@ -113,6 +114,8 @@ if compute:
     orig_stability = {name:[] for name in models.keys()}
     orig_standard_stability = {name:[] for name in models.keys()}
     orig_mse = {name:[] for name in models.keys()}
+
+
 
 
     for _, (train_index, test_index) in tqdm(enumerate(kf.split(X)), desc="running repeated k-fold"):

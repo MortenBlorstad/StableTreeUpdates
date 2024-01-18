@@ -134,7 +134,7 @@ void AbuTree2::update(const dMatrix X,const dVector y, const dVector sample_weig
     //this->root = update_node_obs(X,this->root);
     dMatrix info = predict_info(X);
     dVector gammas = info.col(1).array(); //gamma
-
+https://github.com/MortenBlorstad/StableTreeUpdates.git
     pred_0 = loss_function->link_function(y.array().mean());//
     dVector ypred1 = info.col(0).array() + pred_0; //prediction from previous tree
     dVector pred = dVector::Constant(y.size(),0,  pred_0) ;
