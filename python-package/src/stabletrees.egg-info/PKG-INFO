@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: stabletrees
+Version: 0.1.1
+Summary: Regression tree with stable update
+Home-page: https://github.com/MortenBlorstad/StableTrees
+Author: Morten Blørstad
+Author-email: mblorstad@email.com
+Requires-Python: >=3.6
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Requires-Dist: matplotlib
