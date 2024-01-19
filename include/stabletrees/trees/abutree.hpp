@@ -72,7 +72,7 @@ dVector AbuTree::predict_info_obs(dVector  &obs){
             }
             else{ //mse uses both response and prediction variance
                 //std::cout << alpha << " " << node->y_var << " " <<node->w_var << " " << node->n_samples<< std::endl;
-                info(1,1) = alpha + beta*(node->y_var/node->w_var/node->n_samples);
+                info(1,1) = alpha + beta*(node->y_var/node->w_var/node->n_samples); // alpha + beta* y_var/w_var. equation (x) in article
             }
             //std::cout << "y_var or w_var contains:" << node->y_var << " " <<node->w_var << " " << node->n_samples<<  " " << n1<<  std::endl;
             info(2,1) = node->w_var;

@@ -280,6 +280,18 @@ class AbuTree(BaseRegressionTree):
         self.beta = beta
         self.tree = atree(criterions[self.criterion], self.max_depth, self.min_samples_split,self.min_samples_leaf,adaptive_complexity,self.max_features,self.learning_rate,self.random_state,self.alpha,self.beta)
     
+    def get_params(self, deep=True):
+        # Get parameters for this estimator.
+        return {"criterion": self.criterion,"max_depth": self.max_depth,"min_samples_split": self.min_samples_split, "min_samples_leaf": self.min_samples_leaf, 
+                  "adaptive_complexity":self.adaptive_complexity,"max_features": self.max_features, "random_state": self.random_state, "alpha": self.alpha, "beta": self.beta}
+    
+    def set_params(self, **parameters):
+        # Set the parameters of this estimator.
+        for parameter, value in parameters.items():
+            setattr(self, parameter, value)
+        return self
+
+    
     def predict_info(self, X):
         return self.tree.predict_info(X)
     
