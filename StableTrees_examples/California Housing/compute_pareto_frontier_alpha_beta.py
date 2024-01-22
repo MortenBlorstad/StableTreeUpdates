@@ -106,8 +106,6 @@ if compute:
     print()
 
 
-    import itertools
-    import os
     df_list = list(itertools.chain(*plot_info.values()))
     df = pd.DataFrame(df_list, columns=["dataset","method",'loss', 'stability', "alpha","beta", 'loss_abs', "stability_abs",'loss_se', 'stability_se', 'loss_abs_se', 'stability_abs_se'  ] )
 
@@ -175,7 +173,7 @@ else:
     frontier = sorted(frontier)
 
     baseline = "(0.0, 0.0)"
-    print(frontier)
+    print(frontier, len(frontier))
     #frontier = [ (frontier[0][0], 2) ] + frontier+ [ (2, frontier[-1][1]) ]
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     ax.tick_params(axis='both', which='major', labelsize=20)
@@ -183,7 +181,8 @@ else:
     print(plot_info.loss_abs[plot_info.method == baseline])
     ax.axvline(x=plot_info.loss_abs[plot_info.method == baseline][0], linestyle = "--", c = "#3776ab", lw = 2)
     ax.axhline(y=plot_info.stability_abs[plot_info.method == baseline][0], linestyle = "--", c = "#3776ab", lw = 2)
-    frontier_selected = [pos for i, pos in enumerate(frontier) if i % 5 ==0]
+    frontier_selected = frontier[0::5]
+    frontier_selected+=[frontier[-1]]
     
     def color_scatter(alpha, beta):
         if alpha==0 and beta==0:

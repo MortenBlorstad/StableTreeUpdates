@@ -1,21 +1,14 @@
-from stabletrees import BaseLineTree, AbuTree, NaiveUpdate,TreeReevaluation,StabilityRegularization,BABUTree,AbuTree2
+from stabletrees import AbuTree
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split,RepeatedKFold
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.metrics import mean_poisson_deviance, mean_squared_error
-from sklearn.linear_model import PoissonRegressor,LinearRegression
+from sklearn.metrics import mean_squared_error
 from adjustText import adjust_text
 from sklearn.datasets import fetch_california_housing
 from tqdm import tqdm
 SEED = 0
 EPSILON = 1
 
-def S1(pred1, pred2):
-    return np.std(np.log((pred2+EPSILON)/(pred1+EPSILON)))#np.mean((pred1- pred2)**2)#
 
-def S2(pred1, pred2):
-    return np.mean((pred1- pred2)**2)
 
 
 x_all,y_all = fetch_california_housing(download_if_missing=True, return_X_y=True, as_frame=False)
@@ -30,18 +23,18 @@ plot_params = {"ytick.color" : "black",
           'text.latex.preamble': r"\usepackage{amsmath}",
           "font.serif" : ["Computer Modern Serif"]}
 
-colors = {"baseline":"#3776ab","NU":"#D55E00", "SL":"#CC79A7",
-          "SL1":"#dba1c1",
-          "SL2":"#d186af",
-          "SL3":"#CC79A7",
-          "SL4":"#a36085",
-          "SL5":"#7a4864",
-            "TR":"#009E73","TR1":"#009E73", "TR2":"#009E73","TR3":"#009E73",
-            "TR4":"#009E73", "TR5":"#009E73","TR6":"#009E73",
-            "TR7":"#009E73", "TR8":"#009E73","TR9":"#009E73",
-            "ABU":"#f4ec7a",
-            "ABU1":"#f3e967","ABU2":"#F0E442","ABU3":"#d8cd3b","ABU4":"#c0b634","ABU5":"#a89f2e",
-            "BABU": "#E69F00", "BABU1": "#E69F00","BABU2": "#E69F00" ,"BABU3": "#E69F00","BABU4": "#E69F00","BABU5": "#E69F00","BABU6": "#E69F00"}
+def color_scatter(alpha, beta):
+        if alpha==0 and beta==0:
+            return "#3776ab" # baseline
+        if alpha==0 and beta>0:
+            return "#F0E442" # ABU
+        if alpha>0 and beta==0:
+            return "#CC79A7" # SL
+        if 0<alpha<0.8 and beta>1.2:
+            return "#edbb4c" # combi of SL and ABU
+        if 0.8>=alpha and beta>1:
+            return "#E69F00" # combi of SL and ABU
+        return "#b87f00" 
 
 
 compute = False
@@ -49,22 +42,12 @@ compute = False
 
 criterion = "mse"
 models = {  
-                "baseline": BaseLineTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True),
-                #"NU": NaiveUpdate(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True),
-                #"TR":TreeReevaluation(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, delta=0.05),
-                #"SL1":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.1),
-                #"SL2":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.25),
-                "SL3":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.5),
-                #"SL4":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.75),
-                "SL5":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.9),
-                "ABU": AbuTree2(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True),
-                #"ABU1": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=0.1),
-                "ABU2": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=0.25),
-                "ABU3": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=0.5),
-                #"ABU4": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=0.75),
-                #"ABU5": AbuTree2(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=0.9),
-                #"BABU":AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True),
-                #"BABU": BABUTree(criterion = criterion,min_samples_leaf=5,bumping_iterations=1,adaptive_complexity=True)
+                "baseline": AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
+                "SL":AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0),
+                "ABU": AbuTree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1.2),
+                "SLABU": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=2),
+                "SLABU1": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.8,beta=2),
+                "SLABU2": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.4,beta=1)
                 }
 if compute:
     time = 5
@@ -124,9 +107,10 @@ if compute:
     import pandas as pd
 
     results  = pd.DataFrame()
-    results= {"name": [], "loss": [],"stability":[] }
-    for i, name in enumerate(models.keys()):
+    results= {"name": [], "loss": [],"stability":[], "marker":[] }
+    for name, model in models.items():
             results["name"].append(name)
+            results["marker"].append(f"({model.alpha}, {model.beta})")
             results["loss"].append(mse[name])
             results["stability"].append(stab[name])
 
@@ -134,17 +118,10 @@ if compute:
 
     results = pd.DataFrame(results)
     # Save the DataFrame to a text file
-    output_file = 'CH_overtime__results UAI.txt'
+    output_file = 'StableTrees_examples/results/multiple_update_iterations_experiment.txt'
     results.to_csv(output_file, sep='\t', index=False)
 
 if not compute:
-    labels = {"baseline":"baseline",
-            "SL": "SL", "SL1":"SL_{0.1}", "SL2":"SL_{0.25}","SL3":"SL_{0.5}",
-            "SL4": "SL_{0.75}", "SL5": "SL_{0.9}",
-            "ABU":"ABU",
-            "ABU1":r"ABU_{0.1}","ABU2":r"ABU_{0.25}","ABU3":r"ABU_{0.5}","ABU4":r"ABU_{0.75}","ABU5":r"ABU_{0.9}",
-            "BABU":"BABU"  }
-    
     scatters = []
     texts = []
     import itertools
@@ -156,7 +133,7 @@ if not compute:
             return ast.literal_eval(string)
         except ValueError:
             return []
-    df = pd.read_csv('CH_overtime__results UAI.txt', sep='\t')
+    df = pd.read_csv('StableTrees_examples/results/multiple_update_iterations_experiment.txt', sep='\t')
     # Apply the conversion to 'loss' and 'stability' columns
     df['loss'] = df['loss'].apply(string_to_list)
     df['stability'] = df['stability'].apply(string_to_list)
@@ -164,8 +141,9 @@ if not compute:
 
     mse = {} 
     stab = {}
+    marker = {}
     for index, row in df.iterrows():
-
+        marker[row["name"]] = row["marker"]
         mse[row["name"]] = row["loss"]
         stab[row["name"]] = row["stability"]
 
@@ -189,15 +167,13 @@ if not compute:
     print(frontier)
     for name, model in models.items():
         scatters+= [ax.scatter(x = x, y=y, s = 140,marker='o', c = "black",edgecolors = "black") for (x,y) in frontier]
-        ax.plot(mse[name], stab[name] ,label = r"$"+labels[name]+"$", linestyle='--', marker='o', markersize = 8,linewidth=2, c = colors[name])#np.arange(1,time+1,dtype=int)
+        ax.plot(mse[name], stab[name] ,label = marker[name], linestyle='--', marker='o', markersize = 8,linewidth=2, c = color_scatter(model.alpha,model.beta))
         scatters+= [ax.scatter(x = x, y=y, s = 120, alpha=0) for (x,y) in zip(mse[name],stab[name])]
        
-        #texts += [ ax.text(x =x, y=y, s = r"$"+labels[name]+"$" ,fontsize=20, ha='right', va='center')  for i,(x,y) in enumerate(zip(mse[name],stab[name])) if  i==0]
 
         texts += [ ax.text(x =x, y=y, s = r"$t="+str(1)+"$",fontsize=20, ha='right', va='center')  for i,(x,y) in enumerate(zip(mse[name],stab[name])) if  i==0]#(i+1) %5 ==0
         
-    # ax.axvline(x=mse["baseline"][t], linestyle = "--", c = "#3776ab", lw = 0.5)
-    # ax.axhline(y=stab["baseline"][t], linestyle = "--", c = "#3776ab", lw = 0.5)
+
     mx = 0
     mn = np.inf
     for name in models.keys():
@@ -212,28 +188,7 @@ if not compute:
     plt.legend(loc='upper left',fontsize=8*2, ncols=2)
     adjust_text(texts,add_objects=scatters,ax= ax)
     plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\california_overtime_with_BABU1.png")
+    plt.savefig(f"StableTrees_examples\plots\\multiple_update_iterations_experiment.png")
     plt.close()
 
-
-    plt.rcParams.update(plot_params)
-    f, ax = plt.subplots(1, 1, sharex=True, figsize = (8, 8),dpi=500)
-
-    for name, model in models.items():
-        if name == "BABU":
-            continue
-        ax.plot(mse[name], stab[name] , label = labels[name],linestyle='--', marker='o', markersize = 3,linewidth=1, c = colors[name])#np.arange(1,time+1,dtype=int)
-        scatters+= [ax.scatter(x = x, y=y, s = 0.1, alpha=0) for (x,y) in zip(mse[name],stab[name])]
-        texts += [ ax.text(x =x, y=y, s = r"$t="+str(1)+"$",fontsize=8, ha='right', va='center')  for i,(x,y) in enumerate(zip(mse[name],stab[name])) if  i==0]#(i+1) %5 ==0
-        
-    # ax.axvline(x=mse["baseline"][t], linestyle = "--", c = "#3776ab", lw = 0.5)
-    # ax.axhline(y=stab["baseline"][t], linestyle = "--", c = "#3776ab", lw = 0.5)
-        
-    ax.set_ylabel("instability",fontsize=12)
-    ax.set_xlabel("loss",fontsize=12)
-    plt.legend(loc='upper left')
-    adjust_text(texts,add_objects=scatters,ax= ax)
-    plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\california_overtime.png")
-    plt.close()
 

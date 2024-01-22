@@ -12,6 +12,16 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
 
 
+
+def color_scatter(alpha, beta):
+        if alpha==0 and beta==0:
+            return "#3776ab" # baseline
+        if alpha==0 and beta>0:
+            return "#F0E442" # ABU
+        if alpha>0 and beta==0:
+            return "#CC79A7" # SL
+        return "#E69F00" # combi of SL and ABU
+
 #each Axes has a brand new prop_cycle, so to have differently
 # colored curves in different Axes, we need our own prop_cycle
 # Note: we CALL the axes.prop_cycle to get an itertoools.cycle
@@ -37,23 +47,16 @@ college_box_plot_info = []
 import itertools
 
 
-# switch to plot pareto frontier for different tree-based methods
-method =  "tree" #"randomforest" #"agtboost" # 
-#df =pd.read_csv(f'results/{method}_ISLR_results_10_5.csv')
-df =pd.read_csv('results/ISLR_pareto.csv')
+
+
+df_ISLR =pd.read_csv('StableTrees_examples/results/main_experiment_ISLR.csv')
+df_california  = pd.read_csv('StableTrees_examples/results/main_experiment.csv')
+
+df = pd.concat([df_california,df_ISLR], ignore_index=True)
 
 datasets =["California","Boston", "Carseats","College", "Hitters", "Wage"]
 
 
-point_style = {"tree":"o", "randomforest":"v", "agtboost": "D"}
-
-print(df)
-print(df[df.dataset == "Boston"])
-plot_info = df[df.dataset == "Boston"]
-for index, row in plot_info.iterrows():
-    print(row['loss'],row['stability'],row['marker'])
-# plot data on the axes
-print(len(plot_info))
 
 for ds,ax in zip(datasets,axes):
     # if ds != "College":
@@ -81,39 +84,27 @@ for ds,ax in zip(datasets,axes):
     ax.axvline(x=1, linestyle = "--", c = "#3776ab", lw = 1*3/2)
     ax.axhline(y=1, linestyle = "--", c = "#3776ab", lw = 1*3/2)
     ax.set_title(ds,fontsize = 12*3/2)
-    loss = [row['loss'] for index, row in plot_info.iterrows() if row['marker']!="BABU"]
-    stab = [row['stability'] for index, row in plot_info.iterrows() if row['marker']!="BABU"]
-    scatters = [ax.scatter(x = row['loss'], y=row['stability'], s = 20*3/2, c =row['color'],marker = point_style[method]) for index, row  in plot_info.iterrows() if row['marker']!="BABU"]
-    #scatters.append(ax.scatter(x=[1],y=[1], c = "#3776ab",s = 6,marker = "v"))
-    texts = [ax.text(x = row['loss'], y=row['stability'], s = r"$\mathbf{"+row['marker']+"}$",fontsize=8*3/2,weight='heavy') if (row['loss'],row['stability']) in frontier else ax.text(x = row['loss'], y=row['stability'], s = "$"+row['marker']+"$",fontsize=8*3/2) for index, row  in plot_info.iterrows()  if row['marker']!="BABU"]
-    #texts.append(ax.text(x = 1, y=1, s = r"$baseline$",fontsize=8) )
-    if ds =="Wage" and method == "agtboost":
-        ax.set_xlim((0.999,1.008))
-        ax.set_ylim((0.30,1.05))
+    loss = [row['loss'] for index, row in plot_info.iterrows() ]
+    stab = [row['stability'] for index, row in plot_info.iterrows()]
+    scatters = [ax.scatter(x = row['loss'], y=row['stability'],edgecolors="black",c = color_scatter(row['alpha'],row['beta']), s = 40*3/2) if (row['loss'],row['stability']) in frontier else ax.scatter(x = row['loss'], y=row['stability'],c = color_scatter(row['alpha'],row['beta']), s = 20*3/2) for index, row  in plot_info.iterrows()]
 
-    if ds =="Carseats" and method == "agtboost":
-        ax.set_xlim((0.995,1.0525))
-
-    if (ds =="College" or ds =="Hitters") and method == "agtboost":
-        ax.set_xlim((0.99,1.07))
+    #texts = [ax.text(x = row['loss'], y=row['stability'], s = r"$\mathbf{"+row['marker']+"}$",fontsize=8*3/2,weight='heavy') if (row['loss'],row['stability']) in frontier else ax.text(x = row['loss'], y=row['stability'], s = "$"+row['marker']+"$",fontsize=8*3/2) for index, row  in plot_info.iterrows()]
     
-
-    # ax.set_xlim((np.min(loss)*0.99,np.max(loss)*1.01))
-    if ds == "Wage":
-        ax.set_xlim(xmin = np.min(loss)- 0.002 ,xmax =np.max(loss) + 0.0005)
-        ax.set_ylim(ymin = 0.05,ymax = np.max(stab)+0.1)
-    elif ds in ["Boston","Carseats"]:
-        ax.set_xlim(xmin = np.min(loss)- 0.005 ,xmax =np.max(loss) + 0.01)
-        ax.set_ylim(ymin = 0.175,ymax = np.max(stab)+0.1)
-    elif ds =="California":
-        ax.set_ylim(ymin = 0.3,ymax = np.max(stab)+0.1)
-        ax.set_xlim(xmin = np.min(loss) - 0.02,xmax = np.max(loss) + 0.01)
-    elif ds =="College":
-        ax.set_xlim(xmin = np.min(loss) - 0.02,xmax = np.max(loss) + 0.005)
-        ax.set_ylim(ymin = 0.175,ymax = np.max(stab)+0.1)
-    else:    
-        ax.set_xlim(xmin = np.min(loss) - 0.02,xmax = np.max(loss) + 0.01)
-        ax.set_ylim(ymin = 0.175,ymax = np.max(stab)+0.1)
+    # if ds == "Wage":
+    #     ax.set_xlim(xmin = np.min(loss)- 0.002 ,xmax =np.max(loss) + 0.0005)
+    #     ax.set_ylim(ymin = 0.05,ymax = np.max(stab)+0.1)
+    # elif ds in ["Boston","Carseats"]:
+    #     ax.set_xlim(xmin = np.min(loss)- 0.005 ,xmax =np.max(loss) + 0.01)
+    #     ax.set_ylim(ymin = 0.175,ymax = np.max(stab)+0.1)
+    # elif ds =="California":
+    #     ax.set_ylim(ymin = 0.3,ymax = np.max(stab)+0.1)
+    #     ax.set_xlim(xmin = np.min(loss) - 0.02,xmax = np.max(loss) + 0.01)
+    # elif ds =="College":
+    #     ax.set_xlim(xmin = np.min(loss) - 0.02,xmax = np.max(loss) + 0.005)
+    #     ax.set_ylim(ymin = 0.175,ymax = np.max(stab)+0.1)
+    # else:    
+    #     ax.set_xlim(xmin = np.min(loss) - 0.02,xmax = np.max(loss) + 0.01)
+    #     ax.set_ylim(ymin = 0.175,ymax = np.max(stab)+0.1)
 
 
         
@@ -131,32 +122,17 @@ for ds,ax in zip(datasets,axes):
     # if ds =="Boston" and method == "tree":
     #     ax.set_xlim((0.92,1.05))
     #ax.set_ylim((0.2,1.05))
-    adjust_text(texts,x =X[:,0], y = X[:,1],add_objects=scatters, arrowprops=dict(arrowstyle="-", color='k', lw=0.1),ax= ax, force_text = (0.3,0.3))#
+    #adjust_text(texts,x =X[:,0], y = X[:,1],add_objects=scatters, arrowprops=dict(arrowstyle="-", color='k', lw=0.1),ax= ax, force_text = (0.3,0.3))#
     ax.set_xlabel("loss",fontsize=12*3/2)
     ax.set_ylabel('instability',fontsize=12*3/2)
         
 
 
     
-colors2 = {"baseline":"#3776ab",
-            # "NU":"#D55E00",
-            # "TR":"#009E73", 
-            "SL":"#CC79A7", 
-            "ABU":"#F0E442",
-            #"BABU": "#E69F00",
-            }
-
-# colors2 = {
-#             "NU":"#D55E00",
-#             "TR":"#009E73", 
-#             "SL":"#CC79A7", 
-#             "ABU":"#F0E442",
-#             "BABU": "#E69F00",}
-
-
-
-# colors2 = { "SL":"#CC79A7"}
-# create a common legend for all the plots
+colors2 = {"baseline":"#3776ab", 
+                "SL":"#CC79A7", 
+                "ABU":"#F0E442",
+                "SL+ABU": "#E69F00",}
 legend_elements = [Line2D([0], [0], marker='s', color='w', label=k,
                             markerfacecolor=v, markersize=14) for k,v in colors2.items()  ]
 
@@ -165,12 +141,5 @@ fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.0
 fig.tight_layout()
 fig.subplots_adjust(top=0.9)
 
-
-#plt.tight_layout(rect=[0, 0.03, 1, 1.1])
-
-# axes[-1].legend( handles=legend_elements, loc='center',fontsize=10*3/2)
-# axes[-1].axis("off")
-# adjust spacing between subplots
-#fig.tight_layout()
-plt.savefig(f"StableTrees_examples\plots\\ISLR_pareto_UAI.png")
+plt.savefig(f"StableTrees_examples\plots\\main_experiment_all.png")
 plt.close()

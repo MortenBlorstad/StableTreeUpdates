@@ -1,4 +1,4 @@
-from stabletrees import BaseLineTree, AbuTree,StabilityRegularization,AbuTree2
+from stabletrees import AbuTree
 import numpy as np
 from matplotlib import pyplot as plt
 from adjustText import adjust_text
@@ -11,8 +11,7 @@ SEED = 0
 EPSILON = 1
 np.random.seed(SEED)
 
-def S2(pred1, pred2):
-    return np.mean((pred1- pred2)**2)
+
 
 
 
@@ -27,32 +26,28 @@ plot_params = {"ytick.color" : "black",
           'text.latex.preamble': r"\usepackage{amsmath}",
           "font.serif" : ["Computer Modern Serif"]}
 
-colors = {"baseline":'#1f77b4',"NU":"#D55E00", "SL":"#CC79A7",
-           "SL1":"#dba1c1",
-          "SL2":"#d186af",
-          "SL3":"#CC79A7",
-          "SL4":"#a36085",
-          "SL5":"#7a4864",
-            "ABU":"#f4ec7a",
-            "ABU1":"#f3e967","ABU2":"#F0E442","ABU3":"#d8cd3b","ABU4":"#c0b634","ABU5":"#a89f2e",
-            "BABU": "#E69F00",
-            }
+
+def color_scatter(alpha, beta):
+        if alpha==0 and beta==0:
+            return "#3776ab" # baseline
+        if alpha==0 and beta>0:
+            return "#F0E442" # ABU
+        if alpha>0 and beta==0:
+            return "#CC79A7" # SL
+        if 0<alpha<0.8 and beta>1.2:
+            return "#edbb4c" # combi of SL and ABU
+        if 0.8>=alpha and beta>1:
+            return "#E69F00" # combi of SL and ABU
+        return "#b87f00" 
 
 criterion = "mse"
 models = {  
-                "baseline": BaseLineTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True),
-                #"NU": NaiveUpdate(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True),
-                #"TR":TreeReevaluation(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, delta=0.05),
-                #"SL1":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.1),
-                #"SL2":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.25),
-                "SL3":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.5),
-                #"SL4":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.75),
-                "SL5":StabilityRegularization(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,gamma=0.9),
-                "ABU": AbuTree2(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0),
-                "ABU2": AbuTree2(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.25),
-                "ABU3": AbuTree2(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.5),
-                #"BABU":AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True),
-                #"BABU": BABUTree(criterion = criterion,min_samples_leaf=5,bumping_iterations=1,adaptive_complexity=True)
+                "baseline": AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
+                "SL":AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0),
+                "ABU": AbuTree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1.2),
+                "SLABU": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=2),
+                "SLABU1": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.8,beta=2),
+                "SLABU2": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.4,beta=1)
                 }
 
 sample_sizes = np.array([1000,5000,10000,15000]) #np.power(10,np.arange(2,6), dtype=int)
@@ -106,17 +101,18 @@ if compute:
             stab[name] = [val/repeat for val in stab[name]]
 
     results  = pd.DataFrame()
-    results= {"name": [], "loss": [],"stability":[] }
-    for i, name in enumerate(models.keys()):
+    results= {"name": [], "loss": [],"stability":[], "marker":[] }
+    for name, model in models.items():
             results["name"].append(name)
+            results["marker"].append(f"({model.alpha}, {model.beta})")
             results["loss"].append(mse[name])
             results["stability"].append(stab[name])
 
 
 
-    results = pd.DataFrame(results,)
+    results = pd.DataFrame(results)
     # Save the DataFrame to a text file
-    output_file = 'CH_increasing_sample_size_results.txt'
+    output_file = 'StableTrees_examples/results/varied_sample_size_experiment.txt'
     results.to_csv(output_file, sep='\t', index=False)
 
 if not compute:
@@ -129,12 +125,14 @@ if not compute:
             return ast.literal_eval(string)
         except ValueError:
             return []
-    df = pd.read_csv('CH_increasing_sample_size_results.txt', sep='\t')
+    df = pd.read_csv('StableTrees_examples/results/varied_sample_size_experiment.txt', sep='\t')
     df['loss'] = df['loss'].apply(string_to_list)
     df['stability'] = df['stability'].apply(string_to_list)
     mse = {} 
     stab = {}
+    markers = {}
     for index, row in df.iterrows():
+        markers[row["name"]] = row["marker"]
         mse[row["name"]] = row["loss"]
         stab[row["name"]] = row["stability"]
 
@@ -151,20 +149,6 @@ if not compute:
 
     print(frontier)
 
-
-
-    labels = {"baseline":"baseline","NU":"NU","SL": "SL", "SL1":"SL_{0.1}", "SL2":"SL_{0.25}","SL3":"SL_{0.5}",
-                "SL4": "SL_{0.75}", "SL5": "SL_{0.9}",
-                "TR":"TR","TR1":"TR_{0,5}",
-                "TR2":"TR_{5,5}", "TR3" :"TR_{10,5}",
-                "ABU":"ABU",
-                "ABU1":r"ABU_{0.1}","ABU2":r"ABU_{0.25}","ABU3":r"ABU_{0.5}","ABU4":r"ABU_{0.75}","ABU5":r"ABU_{0.9}",
-                "BABU":"BABU", "BABU1": r"BABU_{1}","BABU2": r"BABU_{3}" ,"BABU3": r"BABU_{5}","BABU4": r"BABU_{7}","BABU5": r"BABU_{10}","BABU6": r"BABU_{20}"   }
-
-
-    
-
-
     plt.rcParams.update(plot_params)
     f, ax = plt.subplots(1, 1, sharex=True, figsize = (8, 8),dpi=500)
     ax.tick_params(axis='both', which='major', labelsize=20)
@@ -173,76 +157,26 @@ if not compute:
     for size, marker in sample_size_to_marker.items():
         sample_size_legends.append(ax.scatter([], [], marker=marker, color='black', label=f'n={size}',s=120))
 
-    # for name, model in models.items():
-    #     ax.plot(mse[name], stab[name] , label = labels[name],linestyle='--', marker='o', markersize = 3,linewidth=1, c = colors[name])#np.arange(1,time+1,dtype=int)
-    #     scatters+= [ax.scatter(x = x, y=y, s = 0.1, alpha=0) for (x,y) in zip(mse[name],stab[name])]
-    #     #texts += [ ax.text(x =x, y=y, s = r"$n="+str(n)+"$",fontsize=8, ha='left', va='top')  for i,(n,x,y) in enumerate(zip(sample_sizes,mse[name],stab[name])) if  name =="baseline"]#(i+1) %5 ==0
 
     texts =[] 
     scatters = []
     for name, model in models.items():
-        # Plot line
-        #ax.plot(mse[name], stab[name], label=labels[name], linestyle='--', linewidth=1, c=colors[name])
 
-        
-        
-        ax.plot(mse[name], stab[name], linestyle='--', linewidth=2, c=colors[name])
+        ax.plot(mse[name], stab[name], linestyle='--', linewidth=2, c=color_scatter(model.alpha,model.beta))
         # Plot scatter points with different markers
         for i, (n, x, y) in enumerate(zip(sample_sizes, mse[name], stab[name])):
             if i ==0:
-                texts.append(ax.text(x = x, y=y, s = r"$"+labels[name]+"$",fontsize=20))
-            marker = sample_size_to_marker[n]  
-            scatters.append(ax.scatter(x, y, marker=marker, s=120, c=colors[name]))
+                texts.append(ax.text(x = x, y=y, s = markers[name],fontsize=20))
+            scatters.append(ax.scatter(x, y, marker=sample_size_to_marker[n] , s=120, c = color_scatter(model.alpha,model.beta)))
     names = list(models.keys())
-    scatters+= [ax.scatter(x = x, y=y, s = 140,marker=sample_size_to_marker[sample_sizes[j]],linewidths=2,c=colors[names[i]],edgecolors = "black") for (x,y,i,j) in frontier]
+    scatters+= [ax.scatter(x = x, y=y, s = 140,marker=sample_size_to_marker[sample_sizes[j]],linewidths=2,c= color_scatter(models[names[i]].alpha,models[names[i]].beta),edgecolors = "black") for (x,y,i,j) in frontier]
         
-    ax.set_xlim(xmax = 0.61)     
+    ax.set_xlim(xmax = 0.61)    
     ax.set_ylabel("instability",fontsize=24)
     ax.set_xlabel("loss",fontsize=24)
     plt.legend(loc='upper left',fontsize="20")
     adjust_text(texts,add_objects=scatters,ax= ax)
     plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\increasing_sample_sizes_with_BABU.png")
+    plt.savefig(f"StableTrees_examples\plots\\varied_sample_size_experiment.png")
     plt.close()
  
-
-    ####################
-
-    plt.rcParams.update(plot_params)
-    f, ax = plt.subplots(1, 1, sharex=True, figsize = (8, 8),dpi=500)
-    ax.tick_params(axis='both', which='major', labelsize=20)
-
-    sample_size_legends = []
-    for size, marker in sample_size_to_marker.items():
-        sample_size_legends.append(ax.scatter([], [], marker=marker, color='black', label=f'n={size}',s=120))
-
-    # for name, model in models.items():
-    #     ax.plot(mse[name], stab[name] , label = labels[name],linestyle='--', marker='o', markersize = 3,linewidth=1, c = colors[name])#np.arange(1,time+1,dtype=int)
-    #     scatters+= [ax.scatter(x = x, y=y, s = 0.1, alpha=0) for (x,y) in zip(mse[name],stab[name])]
-    #     #texts += [ ax.text(x =x, y=y, s = r"$n="+str(n)+"$",fontsize=8, ha='left', va='top')  for i,(n,x,y) in enumerate(zip(sample_sizes,mse[name],stab[name])) if  name =="baseline"]#(i+1) %5 ==0
-
-    texts =[] 
-    scatters = []
-    for name, model in models.items():
-        if name == "BABU":
-            continue
-        
-        
-        ax.plot(mse[name], stab[name], linestyle='--', linewidth=2, c=colors[name])
-        # Plot scatter points with different markers
-        for i, (n, x, y) in enumerate(zip(sample_sizes, mse[name], stab[name])):
-            if i ==0:
-                texts.append(ax.text(x = x, y=y, s = r"$"+labels[name]+"$",fontsize=20))
-            marker = sample_size_to_marker[n]  
-            scatters.append(ax.scatter(x, y, marker=marker, s=120, c=colors[name]))
-    names = list(models.keys())
-    scatters+= [ax.scatter(x = x, y=y, s = 140,marker=sample_size_to_marker[sample_sizes[j]],linewidths=2,c=colors[names[i]],edgecolors = "black") for (x,y,i,j) in frontier]
-        
-    ax.set_xlim(xmax = 0.61)     
-    ax.set_ylabel("instability",fontsize=24)
-    ax.set_xlabel("loss",fontsize=24)
-    plt.legend(loc='upper left',fontsize="20")
-    adjust_text(texts,add_objects=scatters,ax= ax)
-    plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\increasing_sample_sizes.png")
-    plt.close()
