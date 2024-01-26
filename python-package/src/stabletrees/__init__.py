@@ -2,10 +2,9 @@
 pyexample.
 An example python library.
 """
-from stabletrees.tree import BaseLineTree
-from stabletrees.tree import AbuTree
-from stabletrees.tree import SklearnTree
-from stabletrees.tree import StableLossTree
+from stabletrees.tree import Tree
+#from stabletrees.tree import AbuTree
+
 
 
 

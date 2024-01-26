@@ -130,9 +130,9 @@ for ds,ax in zip(datasets,axes):
 
     
 colors2 = {"baseline":"#3776ab", 
-                "SL":"#CC79A7", 
-                "ABU":"#F0E442",
-                "SL+ABU": "#E69F00",}
+            "Constant":"#CC79A7", 
+            "UWR":"#F0E442",
+            "Combined": "#E69F00"}
 legend_elements = [Line2D([0], [0], marker='s', color='w', label=k,
                             markerfacecolor=v, markersize=14) for k,v in colors2.items()  ]
 

@@ -8,7 +8,6 @@
 #include "node.hpp"
 #include "splitter.hpp"
 #include "lossfunctions.hpp"
-#include "initial_prediction.hpp"
 
 
 #include <mutex>
@@ -34,31 +33,35 @@ class Tree{
 
     public:
         Node* root  = NULL;
-        explicit Tree(int _criterion,int max_depth, double min_split_sample,int min_samples_leaf, bool adaptive_complexity, int max_features,double learning_rate, unsigned int random_state); 
+        explicit Tree(int _criterion,int max_depth, double min_split_sample,int min_samples_leaf, bool adaptive_complexity, int max_features,double learning_rate, unsigned int random_state, double alpha, double beta); 
         explicit Tree(); 
-        bool all_same(const dVector &vec);
-        bool all_same_features_values(const dMatrix  &X);
-        virtual Node* build_tree(const dMatrix  &X, const dVector &y, const dVector &g, const dVector &h, int depth, const Node* previuos_tree_node,const dVector &weights);
-        tuple<iVector, iVector> get_masks(const dVector &feature, double value);
+        
+
+
+        // learning tree
         virtual void learn(const dMatrix  X, const dVector y,const  dVector weights);
-        void learn_difference(const dMatrix  X,const dVector y, const dVector g, const dVector h, const dVector weights);
-        Node* get_root();
-        double predict_obs(const dVector  &obs);
-        double predict_uncertainty_obs(const dVector  &obs);
-        dVector predict(const dMatrix  &X);
-        dVector predict_uncertainty(const dMatrix  &X);
+        
+        
+        //update tree 
         virtual void update(const dMatrix X, const dVector y,const dVector weights);
-        virtual tuple<bool,int,double, double,double,double,double> find_split(const dMatrix &X, const dVector &y, const dVector &g, const dVector &h, const std::vector<int> &features_indices);
-        //Node* update_tree_info(dMatrix &X, dVector &y, Node* node, int depth);
-        Node* update_tree_info(const dMatrix &X,const  dVector &y, const dVector &g ,const dVector &h, Node* node, int depth, const dVector &weights);
-        //~Tree();
+
+        dVector predict_uncertainty(const dMatrix  &X);
+
+        // util
+        Node* get_root();
         std::vector<Node*> make_node_list();
-        //virtual Tree* copy();
-        Tree* next_tree = NULL; // only needed for gradient boosting
+
+
+        // model prediction
+        dVector predict(const dMatrix  &X);
+    
+
+        
         int tree_depth;
-        double learning_rate; // only needed for gradient boosting (shrinkage)
-        // void serialize(Tree* tptr, std::ofstream& f);
-        // bool deSerialize(Tree* tptr,  std::ifstream& f);
+        double learning_rate;
+        double alpha;
+        double beta;
+        
         
     protected:
         Splitter* splitter;
@@ -76,6 +79,23 @@ class Tree{
         int number_of_nodes;
         void make_node_list_rec(Node* node, std::vector<Node*> &l, size_t index );
         int init_random_state;
+
+        virtual Node* build_tree(const dMatrix  &X, const dVector &y, const dVector &g, const dVector &h, int depth, const Node* previuos_tree_node,const dVector &weights);
+        virtual tuple<bool,int,double, double,double,double,double> find_split(const dMatrix &X, const dVector &y, const dVector &g, const dVector &h, const std::vector<int> &features_indices);
+        tuple<iVector, iVector> get_masks(const dVector &feature, double value);
+
+        double predict_obs(const dVector  &obs);
+        dVector predict_info_obs(dVector  &obs);
+        dMatrix predict_info(const dMatrix &X);
+
+        double predict_uncertainty_obs(const dVector  &obs);
+
+
+        bool all_same(const dVector &vec);
+        bool all_same_features_values(const dMatrix  &X);
+
+        Node* update_tree(const dMatrix  &X, const dVector &y, const dVector &g, const dVector &h,const dVector gammas, int depth, const Node* previuos_tree_node, const dVector &ypred1, const dVector &weights);
+        tuple<bool,int,double, double,double,double,double,double>  find_update_split(const dMatrix &X,const dVector &y, const dVector &g,const dVector &h,const dVector &weights);
 };
 Tree::Tree(){
     int max_depth = INT_MAX;
@@ -90,53 +110,12 @@ Tree::Tree(){
     this->learning_rate = 1;
     this->random_state = 1;
     this->init_random_state = this->random_state ;
+    this->alpha = 0;
+    this->beta = 0;
 }
 
-// ~DecisionTree() {
-//         // all automatically recycled
-//     }
 
-//  Tree* Tree::copy(){
-//     Tree* tree = new Tree(*this);
-//     tree->root = root->copy();
-//     return tree;
-//  }
- 
-// void Tree::serialize(Tree *tptr, std::ofstream& f)
-// {
-    
-//     int MARKER = -1;
-//     // If current tree is NULL, store marker
-//     if(tptr == NULL)
-//     {
-//         f << MARKER;
-//         return;
-//     }
-//     tptr->root->serialize(f);
-// }
-// bool Tree::deSerialize(Tree *tptr, std::ifstream& f)
-// {
-//     tptr->root = new Node;
-//     const bool success = tptr->root->deSerialize(tptr->root, f);
-//     if (!success) {
-//         tptr = NULL;
-//         return false;
-//     }
-
-//     Tree* new_tree = new Tree;
-//     bool new_tree_exist = deSerialize(new_tree, f);
-//     if(new_tree_exist)
-//     {
-//         tptr->next_tree = new_tree;
-//     }else{
-//         tptr->next_tree = NULL;
-//     }
-    
-//     return true;
-// }
-
-
-Tree::Tree(int _criterion, int max_depth, double min_split_sample,int min_samples_leaf, bool adaptive_complexity,int max_features,double learning_rate, unsigned int random_state){
+Tree::Tree(int _criterion, int max_depth, double min_split_sample,int min_samples_leaf, bool adaptive_complexity,int max_features,double learning_rate, unsigned int random_state, double alpha,double beta){
     //this->splitter = Splitter(_criterion);
     if(max_depth !=NULL){
        this-> max_depth =  max_depth;
@@ -155,7 +134,8 @@ Tree::Tree(int _criterion, int max_depth, double min_split_sample,int min_sample
     this->random_state = random_state;
     this->init_random_state = this->random_state ;
     this->splitter = new Splitter(min_samples_leaf,0.0, adaptive_complexity,max_features, learning_rate);
-
+    this->alpha = alpha;
+    this->beta = beta;
 } 
 
 tuple<bool,int,double, double,double,double,double>  Tree::find_split(const dMatrix &X, const dVector &y, const dVector &g, const dVector &h, const std::vector<int> &features_indices){
@@ -216,19 +196,11 @@ void Tree::learn(const dMatrix  X, const  dVector y, const dVector weights){
     std::lock_guard<std::mutex> lock(mutex); // to make it thread safe when used for parallization in random forest 
     total_obs = y.size();
     this->splitter->total_obs = total_obs;
-    //printf("min_samples_leaf: %d \n", min_samples_leaf);
-    
+
     n1 = total_obs;
 
-    // for (size_t i = 0; i < weights.size(); i++)
-    // {
-    //     printf("w %f\n", weights(i));
-    //}
-    
-    //dVector offset =  dVector::Constant(y.size(),0,  0);
     pred_0 = loss_function->link_function(y.mean()) ; //learn_initial_prediction(y,offset,loss_function); //
-    //pred_0 = 0;
-    //printf("pred_0 %f %f \n", pred_0, loss_function->link_function(y.array().mean()+y.array().mean()/2));
+
     dVector pred = dVector::Constant(y.size(),0,  pred_0); 
 
     // compute first and second derivatives for the second-order approximation of the loss
@@ -241,15 +213,6 @@ void Tree::learn(const dMatrix  X, const  dVector y, const dVector weights){
 }
 
 
-void Tree::learn_difference(const dMatrix  X, const dVector y, const dVector g, const dVector h,const  dVector weights){
-    total_obs = y.size();
-    //printf("min_samples_leaf: %d \n", min_samples_leaf);
-    splitter = new Splitter(min_samples_leaf,total_obs, adaptive_complexity,max_features, learning_rate );
-    n1 = total_obs;
-    
-    this->root = build_tree(X, y,g, h, 0, NULL,weights);//
-}
-
 
 double Tree::predict_uncertainty_obs(const dVector  &obs){
     Node* node = this->root;
@@ -258,7 +221,6 @@ double Tree::predict_uncertainty_obs(const dVector  &obs){
             //printf("prediction %f \n", node->predict());
             return node->w_var;
         }else{
-            //printf("feature %d, value %f, obs %f \n", node->split_feature, node->split_value,obs(node->split_feature));
             if(obs(node->split_feature) <= node->split_value){
                 node = node->left_child;
             }else{
@@ -281,14 +243,68 @@ dVector Tree::predict_uncertainty(const dMatrix  &X){
 }
 
 
+dVector Tree::predict_info_obs(dVector  &obs){
+    Node* node = this->root;
+    dVector info = dVector::Zero(5,1);
+    while(node !=NULL){
+        if(node->is_leaf()){
+            info(0,1) = node->predict();
+            
+            if(node->w_var <=0){
+                node->w_var =0.00001;
+            }
+            if(node->y_var <=0){
+                node->y_var =0.00001;
+            }
+            if(std::isnan(node->y_var)||std::isnan(node->w_var) || std::isnan((node->y_var/node->w_var)/node->n_samples) ){
+                    std::cout << "y_var or w_var contains NaN:" << node->y_var << " " <<node->w_var << " " << node->n_samples<< std::endl;
+                }
+            if(node->y_var< 0 || node->w_var <0 || (node->y_var/node->w_var)/node->n_samples<0){
+                    std::cout << "y_var or w_var <0: " << node->y_var << " " <<node->w_var << " " << node->n_samples<< std::endl;
+                }
+            if(_criterion ==1){ //poisson only uses prediction variance
+                info(1,1) = node->y_var/node->w_var/node->n_samples; //Based on experimental tries
+                //info(1,1) = 1/(node->w_var/node->n_samples); //based on theory
+            }
+            else{ //mse uses both response and prediction variance
+                info(1,1) = alpha + beta*(node->y_var/node->w_var/node->n_samples); // alpha + beta* y_var/w_var. equation (x) in article
+            }
+            info(2,1) = node->w_var;
+            info(3,1) = node->y_var;
+            info(4,1) = node->n_samples;
+            return info;
+        }else{
+            if(obs(node->split_feature) <= node->split_value){
+                node = node->left_child;
+            }else{
+                node = node->right_child;
+            }
+        }
+    }
+}
+
+dMatrix Tree::predict_info(const dMatrix &X){
+    int n = X.rows();
+    dMatrix leaf_info(n,5);
+    dVector obs(X.cols());
+    for(int i =0; i<n; i++){
+        dVector obs = X.row(i);
+        dVector info =predict_info_obs(obs);
+        for (size_t j = 0; j < info.size(); j++)
+        {
+            leaf_info(i,j) = info(j);
+        }
+    }
+    return leaf_info;
+}
+
 double Tree::predict_obs(const dVector  &obs){
     Node* node = this->root;
     while(node !=NULL){
         if(node->is_leaf()){
-            //printf("prediction %f \n", node->predict());
             return node->predict();
         }else{
-            //printf("feature %d, value %f, obs %f \n", node->split_feature, node->split_value,obs(node->split_feature));
+
             if(obs(node->split_feature) <= node->split_value){
                 node = node->left_child;
             }else{
@@ -549,85 +565,6 @@ Node* Tree::build_tree(const dMatrix  &X, const dVector &y, const dVector &g, co
 }
 
 
-/**
- * Update leaf predictions.
- *
- * @param X Feature matrix.
- * @param y response vector.
- * @param g first derivatives.
- * @param h second derivatives.
- * @param depth node depth.
- * @param previuos_tree_node node from previous tree (null if no previous tree).
- * @param weights sample weights.
- */
-Node* Tree::update_tree_info(const dMatrix &X, const dVector &y, const dVector &g , const dVector &h, Node* node, int depth, const dVector &weights){
-    tree_depth = max(tree_depth, depth);
-    node->n_samples = y.size();
-    double eps = 0.0;
-    if(_criterion ==1){ // for poisson need to ensure not log(0)
-        eps=0.0000000001;
-    }
-    if(node->n_samples<1){
-        return NULL;
-    }else if(node->n_samples<1){
-        node->prediction = y[0] - pred_0;
-    }else{
-        double y_mean = (y.array()*weights.array()).sum()/weights.array().sum();
-        double pred = loss_function->link_function(y_mean+eps) - pred_0;
-        node->prediction = pred; //-g.array().sum()/h.array().sum();
-    }
-    if(node->is_leaf()){
-        return node;
-    }
-    dVector feature = X.col(node->split_feature);
-    iVector mask_left;
-    iVector mask_right;
-    tie(mask_left, mask_right) = get_masks(feature, node->split_value);
-    if(mask_left.size()<1 || mask_right.size()<1 ){
-        //printf("null %d %d \n", mask_left.size()<1, mask_right.size()<1);
-        node->left_child = NULL;
-        node->right_child = NULL;
-    }else{
-        iVector keep_cols = iVector::LinSpaced(X.cols(), 0, X.cols()-1).array();
-        dMatrix X_left = X(mask_left,keep_cols); dVector y_left = y(mask_left,1);
-        dMatrix X_right = X(mask_right,keep_cols); dVector y_right = y(mask_right,1);
-        dVector g_left = g(mask_left,1); dVector h_left = h(mask_left,1);
-        dVector g_right = g(mask_right,1); dVector h_right = h(mask_right,1);
-        dVector weights_left  = weights(mask_left,1); dVector weights_right = weights(mask_right,1);
-
-        //printf("update rec %d %d \n", mask_left.size()<1, mask_right.size()<1);
-
-        node->left_child = update_tree_info(X_left, y_left,g_left,h_left, node->left_child, depth+1,weights_left) ;
-        node->right_child = update_tree_info(X_right, y_right,g_right,h_right, node->right_child, depth+1,weights_right) ;
-    }
-    //printf("update %d \n", node->get_split_feature());
-    return node;
-}
-
-
-void Tree::make_node_list_rec(Node* node, std::vector<Node*> &l, size_t index ){
-    if(node->is_leaf()){
-        return;
-    }
-    size_t left_index = index*2+1;
-    size_t right_index = index*2+2;
-    l[left_index] = node->left_child;
-    l[right_index] = node->right_child;
-    make_node_list_rec(node->left_child, l, left_index);
-    make_node_list_rec(node->right_child, l, right_index);
-
-}
-
-std::vector<Node*> Tree::make_node_list(){
-    size_t index = 0;
-    int max_number_of_nodes = pow(2,tree_depth+1)-1;
-    std::vector<Node*> l(max_number_of_nodes);
-    Node* node = root;
-    l[index] = node;
-    make_node_list_rec(node,l, index);
-
-    return l;
-}
 
 
 /**
@@ -637,9 +574,200 @@ std::vector<Node*> Tree::make_node_list(){
  * @param y response vector.
  * @param weights sample weights.
  */
-void Tree::update(const dMatrix X, const  dVector y,const dVector weights){
-    this->random_state = this->init_random_state; //
-    this->learn(X,y,weights);
+void Tree::update(const dMatrix X,const dVector y, const dVector sample_weights){
+    random_state = init_random_state;
+    // bootstrap_seed = init_random_state;
+    std::lock_guard<std::mutex> lock(mutex);
+    //this->root = update_node_obs(X,this->root);
+    dMatrix info = predict_info(X);
+    dVector gammas = info.col(1).array(); //gamma
+    pred_0 = loss_function->link_function(y.array().mean());//
+    dVector ypred1 = info.col(0).array() + pred_0; //prediction from previous tree
+    dVector pred = dVector::Constant(y.size(),0,  pred_0) ;
+    
+    total_obs = y.size();
+    dVector g = loss_function->dloss(y.array(), pred,ypred1, gammas,sample_weights ); 
+    dVector h = loss_function->ddloss(y.array(), pred,ypred1,gammas,sample_weights); 
+    splitter->total_obs= total_obs;
+
+    this->root = update_tree(X, y, g, h, gammas, 0,this->root, ypred1, sample_weights );
+}
+
+
+Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, const dVector &h,const dVector gammas, int depth, const Node* previuos_tree_node, const dVector &ypred1, const dVector &weights){
+    number_of_nodes +=1;
+    tree_depth = max(depth,tree_depth);
+    if(X.rows()<2 || y.rows()<2){
+        printf("X.rows()<2 || y.rows()<2 \n");
+        return NULL;
+    }
+
+    double eps = 0.0;
+    if(_criterion ==1){ // for poisson need to ensure not log(0)
+        eps=0.0000000001;
+    }
+    int n = y.size();
+    double G = g.array().sum();
+    double H = h.array().sum();
+    
+    double y_sum = (y.array()*weights.array()).sum();
+    
+    double ypred1_sum = (ypred1.array() * gammas.array()).sum();
+    
+    double sum_weights = weights.array().sum();
+    double sum_gammas = gammas.array().sum();
+
+
+
+    double pred = loss_function->link_function((y_sum+ypred1_sum)/((sum_weights+sum_gammas)) + eps) - pred_0;
+   
+    
+    if(std::isnan(pred)|| std::isinf(pred)){//|| abs(pred +G/H)>0.000001
+        std::cout << "pred: " << pred << std::endl;
+        std::cout << "G: " << G << std::endl;
+        std::cout << "H: " << H << std::endl;
+        std::cout << "diff: " << abs(pred + G/H)<< std::endl;
+        std::cout << "n: " << n << std::endl;
+        std::cout << "y_sum: " << y_sum << std::endl;
+        std::cout << "ypred1_sum: " << ypred1_sum << std::endl;
+        std::cout << "ypred1 size: " << ypred1.size() << std::endl;
+        std::cout << "y size: " << y.size() << std::endl;
+        std::cout << "y: " << y.array().sum() << std::endl;
+        throw exception("pred is nan or inf: %f \n",pred);
+
+    }
+    bool any_split;
+    double score;
+    
+    double split_value;
+    double w_var = 1;
+    double y_var = 1;
+
+    if(all_same(y)){
+        return new Node(pred, n,y_var,w_var);
+    }
+    
+    int split_feature;
+    iVector mask_left;
+    iVector mask_right;
+    double expected_max_S;
+    std::vector<int> features_indices(X.cols());
+    for (int i=0; i<X.cols(); i++){features_indices[i] = i; } 
+     if(previuos_tree_node ==NULL){
+
+        if(max_features<INT_MAX){
+            std::mt19937 gen(random_state);
+            std::iota(features_indices.begin(), features_indices.end(), 0);
+            std::shuffle(features_indices.begin(), features_indices.end(), gen);
+            features_indices.resize(max_features);
+            features_indices.erase(features_indices.begin() + max_features, features_indices.end());
+        }
+    }else 
+    if(previuos_tree_node->get_features_indices().size()>0) {
+        features_indices = previuos_tree_node->get_features_indices();
+    }
+    this->random_state +=1;
+
+ 
+    
+    
+    
+    
+    tie(any_split, split_feature, split_value, score, y_var ,w_var,expected_max_S)  = find_split(X,y, g,h, features_indices);
+    if(any_split && (std::isnan(y_var)||std::isnan(w_var))){
+        double G=g.array().sum(), H=h.array().sum(), G2=g.array().square().sum(), H2=h.array().square().sum(), gxh=(g.array()*h.array()).sum();
+        double optimism = (G2 - 2.0*gxh*(G/H) + G*G*H2/(H*H)) / (H*n);
+
+        std::cout << "y_var: " << y_var << std::endl;
+        std::cout << "w_var: "<< w_var << std::endl;
+        std::cout << "n: "<< n << std::endl;
+        std::cout << "optimism: "<< optimism << std::endl;
+        std::cout << "expected_max_S: "<< expected_max_S << std::endl;
+        
+        
+        double y_0 = y(0);
+        bool same = true;
+        std::cout << "y"<<0 <<": "<< y_0 << std::endl;
+
+
+        for (size_t i = 1; i < y.size(); i++)
+        {
+            if(y_0 != y(i)){
+                same = false;
+            }
+            if(std::isnan(y_0) ||std::isnan(y(i))  ){
+                std::cout << "nan detected: "<< i << std::endl;
+            }
+            if(std::isnan(g(i))  ){
+                std::cout << "g"<<i <<": "<< g(i) << std::endl;
+            }
+        
+        }
+        std::cout << "all same: "<< same << std::endl;
+        throw exception("something wrong!") ;
+
+    }
+
+    if(depth>=this->max_depth){
+        return new Node(pred, n, y_var,w_var);
+    }
+    if(y.rows()< this->min_split_sample){
+        return new Node(pred, n, y_var,w_var);
+    }
+    if(!any_split){
+
+        return new Node(pred ,n, y_var, w_var);
+    }
+
+    if(score == std::numeric_limits<double>::infinity()){
+        printf("X.size %d y.size %d, reduction %f, expected_max_S %f, min_samples_leaf = %d \n", X.rows(), y.rows(),score,expected_max_S, min_samples_leaf);
+        
+        cout<<"\n one Dimensional Array is : \n";
+        for(int c=0; c<y.size(); c++)
+        {
+                cout<<" "<<y(c)<<" ";
+        }
+        cout<<"\n";
+    }
+   
+
+    dVector feature = X.col(split_feature);
+
+    tie(mask_left, mask_right) = get_masks(feature, split_value);
+    
+    iVector keep_cols = iVector::LinSpaced(X.cols(), 0, X.cols()-1).array();
+    
+    dMatrix X_left = X(mask_left,keep_cols); dVector y_left = y(mask_left,1);
+    dMatrix X_right = X(mask_right,keep_cols); dVector y_right = y(mask_right,1);
+    dVector g_left = g(mask_left,1); dVector h_left = h(mask_left,1);
+    dVector g_right = g(mask_right,1); dVector h_right = h(mask_right,1);
+
+    dVector gammas_left = gammas(mask_left,1); dVector gammas_right = gammas(mask_right,1); 
+    
+    dVector ypred1_left = ypred1(mask_left,1); dVector ypred1_right = ypred1(mask_right,1);
+
+    dVector weights_left  = weights(mask_left,1); dVector weights_right = weights(mask_right,1);
+
+    double loss_parent = (y.array() - pred).square().sum();
+    
+    Node* node = new Node(split_value, loss_parent/n, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
+    
+    
+    node->left_child = update_tree( X_left, y_left, g_left,h_left,gammas_left, depth+1,NULL,ypred1_left,weights_left);
+    
+    if(node->left_child!=NULL){
+        node->left_child->w_var*=expected_max_S;
+        node->left_child->parent_expected_max_S=expected_max_S;
+    }
+    
+    node->right_child = update_tree(X_right, y_right,g_right,h_right, gammas_right, depth+1,NULL,ypred1_right,weights_right) ;
+    
+    if(node->right_child!=NULL){
+        node->right_child->w_var *=expected_max_S;
+        node->right_child->parent_expected_max_S=expected_max_S;
+    }
+
+    return node;
 }
 
 Node* Tree::get_root(){

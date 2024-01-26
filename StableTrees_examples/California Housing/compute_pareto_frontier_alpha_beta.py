@@ -154,12 +154,8 @@ else:
 
     df =pd.read_csv('StableTrees_examples/results/main_experiment.csv')
 
-    point_style = {"tree":"o", "randomforest":"v", "agtboost": "D"}
-    method = "tree"
-   
-
         
-    plot_info = df[df.dataset == "CH"]
+    plot_info = df[df.dataset == "California"]
     print(plot_info)
     frontier = []
     X = np.zeros((len(plot_info)+1, 2))
@@ -195,28 +191,28 @@ else:
 
     scatters = [ax.scatter(x = row['loss_abs'], y=row['stability_abs'],edgecolors="black",c = color_scatter(row['alpha'],row['beta']), s = 80) if (row['loss_abs'],row['stability_abs']) in frontier else ax.scatter(x = row['loss_abs'], y=row['stability_abs'],c = color_scatter(row['alpha'],row['beta']), s = 40) for index, row  in plot_info.iterrows()]
 
-    texts = [ax.text(x = row['loss_abs'], y=row['stability_abs'], s = r"$\mathbf{("+str(row['alpha'])+","+ str(row['beta'])+")}$",fontsize=12,weight='heavy') for index, row  in plot_info.iterrows() if (row['loss_abs'],row['stability_abs']) in frontier_selected]
+    texts = [ax.text(x = row['loss_abs'], y=row['stability_abs'], s = r"$\mathbf{("+str(row['alpha'])+","+ str(row['beta'])+")}$",fontsize=9*2,weight='heavy') for index, row  in plot_info.iterrows() if (row['loss_abs'],row['stability_abs']) in frontier_selected]
     #ax.set_ylim((0.2,1.05))
-    adjust_text(texts,x =X[:,0], y = X[:,1],add_objects=scatters, arrowprops=dict(arrowstyle="-", color='k', lw=0.5),ax= ax, force_text = (0.3,0.3))#
+    adjust_text(texts,x =X[:,0], y = X[:,1],add_objects=scatters, arrowprops=dict(arrowstyle="-", color='k', lw=0.5*2),ax= ax, force_text = (0.3,0.3))#
     ax.set_xlabel("loss",fontsize=24)
     ax.set_ylabel('instability',fontsize=24)
 
     colors2 = {"baseline":"#3776ab", 
-            "SL":"#CC79A7", 
-            "ABU":"#F0E442",
-            "SL+ABU": "#E69F00"}
+            "Constant":"#CC79A7", 
+            "UWR":"#F0E442",
+            "Combined": "#E69F00"}
 
         
 
     legend_elements = [Line2D([0], [0], marker='s', color='w', label=k,
-                                markerfacecolor=v, markersize=12) for k,v in colors2.items()  ]
+                                markerfacecolor=v, markersize=9*2) for k,v in colors2.items()  ]
     print()
-    fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.0), ncol=len(colors2),fontsize = 12)
+    fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.0), ncol=len(colors2),fontsize = 8*2)
 
     #ax.axis("off")
     # adjust spacing between subplots
     fig.tight_layout()
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.90)
     #plt.show()
     plt.savefig(f"StableTrees_examples\plots\\main_experiment.png")
     plt.close()

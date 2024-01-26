@@ -14,8 +14,8 @@ using namespace std;
 #include "node.hpp"
 
 #include "trees\tree.hpp"
-#include "trees\abutree.hpp"
-#include "trees\stablelosstree.hpp"
+//#include "trees\abutree.hpp"
+
 
 
 #include "optimism\cir.hpp"
@@ -81,36 +81,24 @@ PYBIND11_MODULE(_stabletrees, m)
 
     
     py::class_<Tree>(m, "Tree")
-        .def(py::init<int, int , double,int, bool, int ,double, unsigned int>())
-        .def("all_same", &Tree::all_same)
-        .def("all_same_features_values", &Tree::all_same_features_values )
-        .def("get_masks", &Tree::get_masks)
-        .def("build_tree", &Tree::build_tree)
+        .def(py::init<int, int , double,int, bool, int ,double, unsigned int, double,double>())
         .def("learn", &Tree::learn)
-        .def("learn_difference", &Tree::learn_difference)
         .def("get_root", &Tree::get_root)
         .def("predict", &Tree::predict)
         .def("predict_uncertainty", &Tree::predict_uncertainty)
-        .def("update", &Tree::update)
-        .def("make_node_list", &Tree::make_node_list);
+        .def("update", &Tree::update);
 
 
-        
-    py::class_<StableLossTree>(m, "StableLossTree")
-         .def(py::init<double, int, int, double, int,bool, int,double,unsigned int>())
-            .def("learn", &StableLossTree::learn)
-            .def("predict", &StableLossTree::predict)
-            .def("update", &StableLossTree::update)
-            .def("get_root", &StableLossTree::get_root);
 
-    py::class_<AbuTree>(m, "AbuTree")
-         .def(py::init<int, int, double,int,bool, int, double,unsigned int, double,double>())
-            .def("learn", &AbuTree::learn)
-            .def("predict", &AbuTree::predict)
-            .def("update", &AbuTree::update)
-            .def("predict_uncertainty", &AbuTree::predict_uncertainty)
-            .def("predict_info", &AbuTree::predict_info)
-            .def("get_root", &AbuTree::get_root);
+
+    // py::class_<AbuTree>(m, "AbuTree")
+    //      .def(py::init<int, int, double,int,bool, int, double,unsigned int, double,double>())
+    //         .def("learn", &AbuTree::learn)
+    //         .def("predict", &AbuTree::predict)
+    //         .def("update", &AbuTree::update)
+    //         .def("predict_uncertainty", &AbuTree::predict_uncertainty)
+    //         .def("predict_info", &AbuTree::predict_info)
+    //         .def("get_root", &AbuTree::get_root);
         
     py::class_<Splitter>(m, "Splitter")
         .def(py::init<int, double,bool, int, double>())

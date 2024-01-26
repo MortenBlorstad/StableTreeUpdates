@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import itertools
 import datapreprocess
-from stabletrees import AbuTree
+from stabletrees import Tree
 from pareto_efficient import is_pareto_optimal
 from tqdm import tqdm
 SEED = 0
@@ -34,8 +34,8 @@ plot_info  = {ds:[] for ds in datasets} # (x,y,colors,marker)
 
 
 hyperparameters = {
-    "alpha": np.round(np.arange(0,2.01,0.2),2),
-    "beta": np.round(np.arange(0,2.01,0.2),2)
+    "alpha": np.round(np.arange(0,1.01,0.5),2),
+    "beta": np.round(np.arange(0,1.01,0.5),2)
 }
 search_grid = list(itertools.product(hyperparameters["alpha"], hyperparameters["beta"]))
 
@@ -45,7 +45,7 @@ criterion = "mse"
 stability_all = {c:[] for c in search_grid}
 mse_all= {c:[] for c in search_grid}
 
-compute = False
+compute = True
 
 if compute:
     for ds,target in zip(datasets,targets ):
@@ -65,7 +65,7 @@ if compute:
         for alpha, beta in tqdm(search_grid, desc=f"running repeated k-fold for {len(search_grid)} hyperparameter settings"):
 
             # initial model 
-            model = AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=alpha, beta=beta)
+            model = Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=alpha, beta=beta)
             
             for train_index, test_index in kf.split(X):
                 X_12, y_12 = X[train_index],y[train_index]
@@ -121,9 +121,9 @@ if compute:
             plot_info[ds].append((ds,(alpha, beta),x_r, y_r, alpha, beta , x_abs,y_abs,x_se, y_se, x_abs_se, y_abs_se ))
         print()
 
-    df_list = list(itertools.chain(*plot_info.values()))
-    df = pd.DataFrame(df_list, columns=["dataset","method",'loss', 'stability', "alpha","beta", 'loss_abs', "stability_abs",'loss_se', 'stability_se', 'loss_abs_se', 'stability_abs_se'  ] )
-    df.to_csv('StableTrees_examples/results/main_experiment_ISLR.csv', index=False)
+    # df_list = list(itertools.chain(*plot_info.values()))
+    # df = pd.DataFrame(df_list, columns=["dataset","method",'loss', 'stability', "alpha","beta", 'loss_abs', "stability_abs",'loss_se', 'stability_se', 'loss_abs_se', 'stability_abs_se'  ] )
+    # df.to_csv('StableTrees_examples/results/main_experiment_ISLR.csv', index=False)
 else:
     from matplotlib import pyplot as plt
     from adjustText import adjust_text
