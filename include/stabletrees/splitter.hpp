@@ -10,6 +10,7 @@
 #include "gumbel.hpp"
 #include "utils.hpp"
 #include <omp.h>
+#include <vector>
 
 using Eigen::Dynamic;
 using dVector = Eigen::Matrix<double, Dynamic, 1>;

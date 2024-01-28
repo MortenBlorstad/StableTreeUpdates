@@ -3,7 +3,7 @@
 #ifndef __LOSSFUNCTIONS_HPP_INCLUDED__
 #define __LOSSFUNCTIONS_HPP_INCLUDED__
 #include <Eigen/Dense>
-
+#include <vector>
 
 using Eigen::Dynamic;
 using dVector = Eigen::Matrix<double, Dynamic, 1>;

@@ -13,12 +13,12 @@ using namespace std;
 
 #include "node.hpp"
 
-#include "trees\tree.hpp"
+#include "tree.hpp"
 //#include "trees\abutree.hpp"
 
 
 
-#include "optimism\cir.hpp"
+#include "cir.hpp"
 
 
 
