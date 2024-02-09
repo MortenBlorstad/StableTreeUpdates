@@ -81,7 +81,7 @@ double Splitter::get_reduction(const dVector &g,const dVector &h, const iVector 
 }
 
 tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(const dMatrix  &X, const dVector  &y, const dVector &g, const dVector &h,const std::vector<int> &features_indices){
-    int n = y.size();
+    int n = y.size(); //number of obs in node
     double observed_reduction = -std::numeric_limits<double>::infinity();
     double score;
     double split_value;
@@ -104,10 +104,20 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
     dVector u_store((int)n);
     double prob_delta = 1.0/n;
     dArray gum_cdf_grid(grid_size);
-    double optimism = (G2 - 2.0*gxh*(G/H) + G*G*H2/(H*H)) / (H*n);
+    double optimism = (G2 - 2.0*gxh*(G/H) + G*G*H2/(H*H)) / (H*n); //equation 30, lunde et al
     double expected_max_S;
-    double w_var = total_obs*(n/total_obs)*(optimism/(H));
-    double y_var =  n * (n/total_obs) * total_obs * (optimism / H ); //(y.array() - y.array().mean()).square().mean();
+    double conditional_variance_without_profiling = optimism/(H/n); //equation 19, lunde et al  //((n/total_obs))*
+    
+    double w_var = conditional_variance_without_profiling;
+    //double w_var =  (n/total_obs)*(g.array() + h.array()*(-G/H) ).square().sum()/(H*H); //conditional_variance_without_profiling*n; // later multiplied by the effect of profiling (tree.hpp, in build_tree and update_tree method, e.g line 553 and 562)
+    //(g.array() + h.array()*(-G/H) ).square().sum()/(H2) ; //
+
+    
+    //double y_var = n*conditional_variance_without_profiling; 
+    double y_var = (y.array() - y.array().mean()).square().mean(); 
+    //double w_var = y_var/n;
+    //double w_var = total_obs*(n/total_obs)*(optimism/(H));
+    //double y_var =  n * (n/total_obs) * total_obs * (optimism / H ); //(y.array() - y.array().mean()).square().mean();
 
 
    
@@ -151,7 +161,7 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
             }
             u_store[num_splits] = nl*prob_delta;
             num_splits +=1;
-            score  =  ((Gl*Gl)/Hl + (Gr*Gr)/Hr - (G*G)/H)/(2*n);
+            score  =  ((Gl*Gl)/(Hl) + (Gr*Gr)/(Hr) - (G*G)/(H))/(2*n);
             
             if(observed_reduction<score){
                 any_split = true;
@@ -173,6 +183,7 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
                 std::cout << "H:  " <<  H << std::endl;
                 std::cout << "n: " <<  n << std::endl;
                 std::cout << "score:  " <<  score << std::endl;
+                std::cout << "hi:  " <<  h_i << std::endl;
                 throw exception("observed_reduction is inf" );
 
             } 

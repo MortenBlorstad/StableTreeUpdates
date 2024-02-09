@@ -59,5 +59,4 @@ plt.plot(np.sort(X,axis=0), t.predict(np.sort(X,axis=0)),c = "r", linewidth=3, l
 plt.plot(np.sort(X,axis=0), clf.predict(np.sort(X,axis=0)),c = "orange",linewidth=2,linestyle='dashed', label = "Grid Search CV")
 plt.legend(handles=legend_elements, loc='upper left',fontsize=8)
 plt.tight_layout()
-plt.savefig(f"StableTrees_examples\plots\\adaptive_vs_hyperparameters.png",bbox_inches='tight')
-plt.close()
+plt.show()

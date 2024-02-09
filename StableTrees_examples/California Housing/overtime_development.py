@@ -1,4 +1,4 @@
-from stabletrees import AbuTree
+from stabletrees import Tree
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
@@ -12,6 +12,7 @@ EPSILON = 1
 
 
 x_all,y_all = fetch_california_housing(download_if_missing=True, return_X_y=True, as_frame=False)
+
 
 
 plot_params = {"ytick.color" : "black",
@@ -30,9 +31,9 @@ def color_scatter(alpha, beta):
             return "#F0E442" # ABU
         if alpha>0 and beta==0:
             return "#CC79A7" # SL
-        if 0<alpha<0.8 and beta>1.2:
+        if 0<alpha<0.5:
             return "#edbb4c" # combi of SL and ABU
-        if 0.8>=alpha and beta>1:
+        if 0<alpha<0.8:
             return "#E69F00" # combi of SL and ABU
         return "#b87f00" 
 
@@ -42,12 +43,12 @@ compute = False
 
 criterion = "mse"
 models = {  
-                "baseline": AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
-                "SL":AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0),
-                "ABU": AbuTree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1.2),
-                "SLABU": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=2),
-                "SLABU1": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.8,beta=2),
-                "SLABU2": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.4,beta=1)
+                "baseline": Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
+                "SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=1,beta=0),
+                "SLABU": Tree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1),
+                "SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1),
+                "SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.6,beta=2),
+                "SLABU3": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.2,beta=0.4)
                 }
 if compute:
     time = 5
@@ -60,7 +61,7 @@ if compute:
    
 
 
-    repeat =50
+    repeat =10
     for i in tqdm(range(repeat), desc="running"):
         kf = KFold(n_splits=time+2,shuffle=True,random_state=i)
         inds = list(kf.split(x_all))
@@ -82,6 +83,7 @@ if compute:
 
         
         for t in range(time): 
+            print(t)
             ind =inds[t+1][-1]
             # print(len(ind))
             x_t = x_all[ind]   
@@ -188,7 +190,7 @@ if not compute:
     plt.legend(loc='upper left',fontsize=8*2, ncols=2)
     adjust_text(texts,add_objects=scatters,ax= ax)
     plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\multiple_update_iterations_experiment.png")
+    plt.savefig(f"StableTrees_examples\plots\\multiple_update_iterations_experiment_remake.png")
     plt.close()
 
 

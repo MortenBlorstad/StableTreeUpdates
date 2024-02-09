@@ -1,4 +1,4 @@
-from stabletrees import AbuTree
+from stabletrees import Tree
 import numpy as np
 from matplotlib import pyplot as plt
 from adjustText import adjust_text
@@ -34,20 +34,20 @@ def color_scatter(alpha, beta):
             return "#F0E442" # ABU
         if alpha>0 and beta==0:
             return "#CC79A7" # SL
-        if 0<alpha<0.8 and beta>1.2:
+        if 0<alpha<0.5:
             return "#edbb4c" # combi of SL and ABU
-        if 0.8>=alpha and beta>1:
+        if 0<alpha<0.8:
             return "#E69F00" # combi of SL and ABU
         return "#b87f00" 
 
 criterion = "mse"
 models = {  
-                "baseline": AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
-                "SL":AbuTree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0),
-                "ABU": AbuTree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1.2),
-                "SLABU": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=2),
-                "SLABU1": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.8,beta=2),
-                "SLABU2": AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.4,beta=1)
+                "baseline": Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
+                "SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0),
+                "SLABU": Tree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=1.2),
+                "SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.4,beta=2),
+                "SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.6,beta=2),
+                "SLABU3": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.2,beta=0.4)
                 }
 
 sample_sizes = np.array([1000,5000,10000,15000]) #np.power(10,np.arange(2,6), dtype=int)
@@ -177,6 +177,6 @@ if not compute:
     plt.legend(loc='upper left',fontsize="20")
     adjust_text(texts,add_objects=scatters,ax= ax)
     plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\varied_sample_size_experiment.png")
+    plt.savefig(f"StableTrees_examples\plots\\varied_sample_size_experiment_remake.png")
     plt.close()
  

@@ -26,6 +26,7 @@ class Node{
         double y_var;// variance to the response variable in a node
         double w_var;// variance to the prediction in a node
         double parent_expected_max_S; 
+        double effect_profiling; 
         Node();
         Node(double _split_value,double _impurity, double _split_score, int _split_feature, int _n_samples, double _prediction);
         Node(double _split_value,double _impurity, double _split_score, int _split_feature, int _n_samples, double _prediction, double y_var, double w_var);

@@ -86,6 +86,7 @@ PYBIND11_MODULE(_stabletrees, m)
         .def("get_root", &Tree::get_root)
         .def("predict", &Tree::predict)
         .def("predict_uncertainty", &Tree::predict_uncertainty)
+        .def("predict_info", &Tree::predict_info)
         .def("update", &Tree::update);
 
 

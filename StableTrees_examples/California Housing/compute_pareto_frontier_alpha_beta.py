@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split,RepeatedKFold
 import numpy as np
 import pandas as pd
 import itertools
-from stabletrees import AbuTree
+from stabletrees import Tree
 from sklearn.metrics import mean_squared_error
 from adjustText import adjust_text
 from pareto_efficient import is_pareto_optimal
@@ -17,8 +17,8 @@ def stability_measure(pred1, pred2):
     return np.mean((pred1- pred2)**2)
 
 
-X,y = fetch_california_housing(download_if_missing=True, return_X_y=True, as_frame=False) #get CH data
-plot_info  = {"CH":[]} # (x,y,colors,marker)
+X,y = fetch_california_housing(download_if_missing=True, return_X_y=True, as_frame=False) #get California data
+plot_info  = {"California":[]} # (x,y,colors,marker)
 
 hyperparameters = {
     "alpha": np.round(np.arange(0,2.01,0.2),2),
@@ -48,7 +48,7 @@ if compute:
 
     for alpha, beta in tqdm(search_grid, desc=f"running repeated k-fold for {len(search_grid)} hyperparameter settings"):
 
-        model = AbuTree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=alpha, beta=beta)
+        model = Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True,alpha=alpha, beta=beta)
         
         for _, (train_index, test_index) in enumerate(kf.split(X)):
             X_12, y_12 = X[train_index],y[train_index]
@@ -102,7 +102,7 @@ if compute:
         x_r = x_abs/mse_scale
         y_r = y_abs/S_scale
         
-        plot_info["CH"].append(("CH",(alpha, beta),x_r, y_r, alpha, beta , x_abs,y_abs,x_se, y_se, x_abs_se, y_abs_se ))
+        plot_info["California"].append(("California",(alpha, beta),x_r, y_r, alpha, beta , x_abs,y_abs,x_se, y_se, x_abs_se, y_abs_se ))
     print()
 
 
@@ -122,7 +122,7 @@ if compute:
 
     #     old_df.to_csv('results/tree_CH__results_alpha_beta.csv', index=False)
     # else:
-    df.to_csv('StableTrees_examples/results/main_experiment.csv', index=False)
+    df.to_csv('StableTrees_examples/results/main_experiment_remake.csv', index=False)
 else:
 
     #######################
@@ -152,7 +152,7 @@ else:
     plt.rcParams.update(plot_params)
 
 
-    df =pd.read_csv('StableTrees_examples/results/main_experiment.csv')
+    df =pd.read_csv('StableTrees_examples/results/main_experiment_remake.csv')
 
         
     plot_info = df[df.dataset == "California"]
@@ -214,5 +214,5 @@ else:
     fig.tight_layout()
     fig.subplots_adjust(top=0.90)
     #plt.show()
-    plt.savefig(f"StableTrees_examples\plots\\main_experiment.png")
+    plt.savefig(f"StableTrees_examples\plots\\main_experiment_remake.png")
     plt.close()
