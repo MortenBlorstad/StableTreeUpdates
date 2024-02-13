@@ -26,16 +26,16 @@ def stability_measure(pred1, pred2):
     return np.mean((pred1- pred2)**2)
 
 # from examples in R package ISLR2, https://cran.r-project.org/web/packages/ISLR2/ISLR2.pdf
-datasets =["Boston"] #, "Carseats","College", "Hitters", "Wage"
-targets = ["medv"] # , "Sales", "Apps", "Salary", "wage"
+datasets =["Boston", "Carseats","College", "Hitters", "Wage"]#["Boston"] #
+targets = ["medv", "Sales", "Apps", "Salary", "wage"] #["medv"] # 
 
 plot_info  = {ds:[] for ds in datasets} # (x,y,colors,marker)
 
 
 
 hyperparameters = {
-    "alpha": [0],#np.round(np.arange(0,2.01,0.2),2),
-     "beta": np.round(np.arange(0,2.01,0.2),2)
+    "alpha": np.round(np.arange(0,1.01,0.2),2),
+     "beta": np.round(np.arange(0,1.01,0.2),2)
 }
 search_grid = list(itertools.product(hyperparameters["alpha"], hyperparameters["beta"]))
 
@@ -45,7 +45,7 @@ criterion = "mse"
 stability_all = {c:[] for c in search_grid}
 mse_all= {c:[] for c in search_grid}
 
-compute = True
+compute = False
 
 if compute:
     for ds,target in zip(datasets,targets ):
@@ -123,7 +123,7 @@ if compute:
 
     df_list = list(itertools.chain(*plot_info.values()))
     df = pd.DataFrame(df_list, columns=["dataset","method",'loss', 'stability', "alpha","beta", 'loss_abs', "stability_abs",'loss_se', 'stability_se', 'loss_abs_se', 'stability_abs_se'  ] )
-    df.to_csv('StableTrees_examples/results/main_experiment_ISLR_remake_1overB_.csv', index=False)
+    df.to_csv('StableTrees_examples/results/main_experiment_ISLR.csv', index=False)
 else:
     from matplotlib import pyplot as plt
     from adjustText import adjust_text
@@ -145,7 +145,7 @@ else:
     fig, axes = plt.subplots(nrows=2, ncols=3, figsize=( 11.7, 2*11.7/3), dpi=500)
     axes = axes.ravel()
     plt.rcParams.update(plot_params)
-    df =pd.read_csv('StableTrees_examples/results/main_experiment_ISLR_remake_1overB.csv')
+    df =pd.read_csv('StableTrees_examples/results/main_experiment_ISLR.csv')
     datasets =["Boston", "Carseats","College", "Hitters", "Wage"]
     for ds,ax in zip(datasets,axes[:-1]):
         # if ds != "College":
@@ -195,7 +195,7 @@ else:
     # adjust spacing between subplots
     fig.tight_layout()
     #plt.show()
-    plt.savefig(f"StableTrees_examples\plots\main_experiment_ISLR_remake_1overB.png")
+    plt.savefig(f"StableTrees_examples\plots\main_experiment_ISLR_minw_w.png")
     plt.close()
 
 

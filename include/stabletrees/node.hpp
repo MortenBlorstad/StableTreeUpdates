@@ -25,6 +25,7 @@ class Node{
         double impurity; // node impurity
         double y_var;// variance to the response variable in a node
         double w_var;// variance to the prediction in a node
+        double posterior_precision;
         double parent_expected_max_S; 
         double effect_profiling; 
         Node();

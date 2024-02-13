@@ -11,6 +11,7 @@
 #include "utils.hpp"
 #include <omp.h>
 #include <vector>
+#include "pgamma.hpp"
 
 using Eigen::Dynamic;
 using dVector = Eigen::Matrix<double, Dynamic, 1>;
@@ -34,6 +35,7 @@ class Splitter{
         virtual ~Splitter();
         double get_reduction(const dVector &g,const dVector &h, const iVector mask_left);
         double total_obs;
+        double n0;
         
     protected:
         
@@ -50,7 +52,7 @@ class Splitter{
 Splitter::Splitter(){
     adaptive_complexity = false;
     this->min_samples_leaf = 1;
-    cir_sim = cir_sim_mat(500,500,1);
+    cir_sim = cir_sim_mat(1000, 100,1);
 }
 
 Splitter::Splitter(int min_samples_leaf,double _total_obs, bool _adaptive_complexity, int max_features, double learning_rate){
@@ -59,7 +61,7 @@ Splitter::Splitter(int min_samples_leaf,double _total_obs, bool _adaptive_comple
     this->min_samples_leaf = min_samples_leaf;
     this->max_features = max_features;
 
-    cir_sim = cir_sim_mat(500,500,1);
+    cir_sim = cir_sim_mat(1000,100,1);//cir_sim_mat(500,500,1);
     this->learning_rate = learning_rate;
 }
 
@@ -106,15 +108,23 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
     dArray gum_cdf_grid(grid_size);
     double optimism = (G2 - 2.0*gxh*(G/H) + G*G*H2/(H*H)) / (H*n); //equation 30, lunde et al
     double expected_max_S;
-    double conditional_variance_without_profiling = optimism/(H/n); //equation 19, lunde et al  //((n/total_obs))*
+    double conditional_variance_without_profiling = optimism/(H/n); //equation 19, lunde et al  //((n/total_obs))*(n/total_obs)*
     
-    double w_var = conditional_variance_without_profiling;
-    //double w_var =  (n/total_obs)*(g.array() + h.array()*(-G/H) ).square().sum()/(H*H); //conditional_variance_without_profiling*n; // later multiplied by the effect of profiling (tree.hpp, in build_tree and update_tree method, e.g line 553 and 562)
+    double w_var = conditional_variance_without_profiling;//*(total_obs/n0);
+    //double y_var = n*conditional_variance_without_profiling;
+    //double w_var =  (n/total_obs)*(g.array() + h.array()*(-G/H) ).square().sum()/(H*H);// huber sandwich estimator //conditional_variance_without_profiling*n; // later multiplied by the effect of profiling (tree.hpp, in build_tree and update_tree method, e.g line 553 and 562)
     //(g.array() + h.array()*(-G/H) ).square().sum()/(H2) ; //
 
-    
-    //double y_var = n*conditional_variance_without_profiling; 
-    double y_var = (y.array() - y.array().mean()).square().mean(); 
+    double y_var = (y.array() - y.array().mean()).square().mean();
+    // std::cout << "w_var huber: " <<  (n/total_obs)*(g.array() + h.array()*(-G/H) ).square().sum()/(H*H) << " w_var: " << w_var << std::endl;
+    // if(abs(n*conditional_variance_without_profiling - (y.array() - y.array().mean()).square().mean())> 0.000001){
+    //     //std::cout << "n*conditional_variance_without_profiling: " <<  n*conditional_variance_without_profiling << " y_var " << y_var << std::endl;
+    //      std::cout << "n*conditional_variance_without_profiling/w_var: " <<  n*conditional_variance_without_profiling/(w_var) << " y_var/w_var " << y_var/(w_var) << " n: "<< n << std::endl;
+    // }
+   
+
+     
+     
     //double w_var = y_var/n;
     //double w_var = total_obs*(n/total_obs)*(optimism/(H));
     //double y_var =  n * (n/total_obs) * total_obs * (optimism / H ); //(y.array() - y.array().mean()).square().mean();
@@ -192,6 +202,13 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
             dVector u = u_store.head(num_splits);
             dArray max_cir = rmax_cir(u, cir_sim); // Input cir_sim!
             if(num_splits>1){
+               
+                // Exactly gamma distrbuted: shape 1, scale 2
+                // Estimate cdf of max cir for feature j
+                // for(int k=0; k< grid_size; k++){ 
+                //     gum_cdf_grid[k] = gammaCDF(grid[k], 1, 2.0,true,false); //q, shape, scale, lower tail, not log
+                // }
+
                 // Asymptotically Gumbel
                     
                 // Estimate Gumbel parameters
@@ -245,7 +262,10 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
             any_split = false;
         }
     }
-
+    // if(expected_max_S<1){
+    //     std::cout << "expected_max_S = "<< expected_max_S << std::endl;
+    //     throw exception("expected_max_S < 1" );
+    // }
     return tuple<bool,int,double,double,double,double,double>(any_split, split_feature, split_value,observed_reduction,y_var,w_var,expected_max_S);
 
 }

@@ -13,7 +13,9 @@ EPSILON = 1
 
 x_all,y_all = fetch_california_housing(download_if_missing=True, return_X_y=True, as_frame=False)
 
-
+# ind = y_all<5
+# y_all= y_all[ind]
+# x_all = x_all[ind]
 
 plot_params = {"ytick.color" : "black",
           "xtick.color" : "black",
@@ -39,19 +41,22 @@ def color_scatter(alpha, beta):
 
 
 compute = False
-
+# print(np.var(y_all)/len(y_all))
+# plt.hist(y_all, bins = 100)
+# plt.show()
 
 criterion = "mse"
 models = {  
                 "baseline": Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
-                "SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=1,beta=0),
+                #"SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=1,beta=0),
                 "SLABU": Tree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1),
-                "SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1),
-                "SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.6,beta=2),
-                "SLABU3": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.2,beta=0.4)
+                #"SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1.2),
+                #"SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.6,beta=2),
+                #"SLABU3": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.2,beta=0.4)
                 }
+time = 10
 if compute:
-    time = 5
+
     prev_pred = {name:0 for name in models.keys()}
     mse = {name:[0]*time for name in models.keys()}
     stab = {name:[0]*time for name in models.keys()}
@@ -61,7 +66,7 @@ if compute:
    
 
 
-    repeat =10
+    repeat =5
     for i in tqdm(range(repeat), desc="running"):
         kf = KFold(n_splits=time+2,shuffle=True,random_state=i)
         inds = list(kf.split(x_all))
@@ -81,7 +86,6 @@ if compute:
 
             prev_pred[name] = pred
 
-        
         for t in range(time): 
             print(t)
             ind =inds[t+1][-1]
@@ -155,7 +159,7 @@ if not compute:
     ax.tick_params(axis='both', which='major', labelsize=20)
 
     
-    X = np.zeros((len(models),5,2 )) # n_model, time, loss and stab
+    X = np.zeros((len(models),time,2 )) # n_model, time, loss and stab
     for i,name in enumerate(models.keys()):
         X[i,:,0] = mse[name]
         X[i,:,1] = stab[name]
