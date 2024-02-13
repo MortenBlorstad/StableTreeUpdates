@@ -48,7 +48,7 @@ compute = False
 criterion = "mse"
 models = {  
                 "baseline": Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
-                #"SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=1,beta=0),
+                "SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=1,beta=0),
                 "SLABU": Tree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1),
                 #"SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0,beta=1.2),
                 #"SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.6,beta=2),

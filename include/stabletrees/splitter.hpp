@@ -52,7 +52,7 @@ class Splitter{
 Splitter::Splitter(){
     adaptive_complexity = false;
     this->min_samples_leaf = 1;
-    cir_sim = cir_sim_mat(1000, 100,1);
+    cir_sim = cir_sim_mat(500, 500,1);
 }
 
 Splitter::Splitter(int min_samples_leaf,double _total_obs, bool _adaptive_complexity, int max_features, double learning_rate){
@@ -61,7 +61,7 @@ Splitter::Splitter(int min_samples_leaf,double _total_obs, bool _adaptive_comple
     this->min_samples_leaf = min_samples_leaf;
     this->max_features = max_features;
 
-    cir_sim = cir_sim_mat(1000,100,1);//cir_sim_mat(500,500,1);
+    cir_sim = cir_sim_mat(500,500,1);//cir_sim_mat(500,500,1);
     this->learning_rate = learning_rate;
 }
 
@@ -219,7 +219,7 @@ tuple<bool,int,double,double,double,double,double> Splitter::find_best_split(con
                 }
 
             }else{
-                
+               
 
                 // Asymptotically Gumbel
                     

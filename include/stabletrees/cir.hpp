@@ -109,7 +109,7 @@ dVector cir_sim_vec(int m, int random_state)
 
 /*
  * cir_sim_mat:
- * Returns 1000 by 1000 cir simulations
+ * Returns nsim by nobs cir simulations
  */
 dMatrix cir_sim_mat(int nsim, int nobs, unsigned int random_state)
 {

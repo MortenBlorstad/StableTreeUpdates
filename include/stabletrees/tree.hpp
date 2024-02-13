@@ -274,7 +274,7 @@ dVector Tree::predict_info_obs(dVector  &obs){
             else{ //mse uses both response and prediction variance
                 //info(1,1) = alpha + beta*(node->y_var/node->w_var/node->n_samples); // alpha + beta* y_var/w_var. equation (x) in article
                 double eps = 1.0/100.0;
-                info(1,1) = 1/((node->n_samples*node->w_var)+eps ); //(node->y_var/node->w_var); // alpha + beta* y_var/w_var. equation (x) in article
+                info(1,1) = 1/((node->n_samples*node->w_var) +eps ); //(node->y_var/node->w_var); // alpha + beta* y_var/w_var. equation (x) in article
             }
             info(2,1) = 1.0/node->w_var/node->n_samples; ///((double)node->n_samples*(double)node->n_samples);//node->w_var;
             info(3,1) = node->y_var;
@@ -364,30 +364,12 @@ Node* Tree::build_tree(const dMatrix  &X, const dVector &y, const dVector &g, co
     double G = g.array().sum();
     double H = h.array().sum();
     
-   
-    double eps = 0.0;
-    if(_criterion ==1){ // for poisson need to ensure not log(0)
-        eps=0.0000000001;
-    }
-
     double y_sum = (y.array()*weights.array()).sum();
     double sum_weights = weights.array().sum();
-    // double pred = loss_function->link_function(y_sum/sum_weights+eps) - pred_0;
-    //printf("%f \n", pred);
-    double pred = -G/H;
-    //printf("-g/h = %f, y.mean() = %f, -G/H = %f \n", pred, y.array().mean(),pred_0-G/H);
-    if(std::isnan(pred)|| std::isinf(pred)){
-        std::cout << "tree_depth: " << tree_depth << std::endl;
-        std::cout << "_criterion: " << _criterion << std::endl;
-        std::cout << "eps: " << eps << std::endl;
-        std::cout << "pred: " << pred << std::endl;
-        std::cout << "G: " << G << std::endl;
-        std::cout << "H: " << H << std::endl;
-        std::cout << "y_sum: " << y_sum << std::endl;
+    double pred = loss_function->link_function(y_sum/sum_weights) - pred_0;
 
-        throw exception("pred is nan or inf: %f \n",pred);
-
-    }
+    //double pred = -G/H;
+    
     bool any_split;
     double score;
     
@@ -401,131 +383,34 @@ Node* Tree::build_tree(const dMatrix  &X, const dVector &y, const dVector &g, co
     iVector mask_left;
     iVector mask_right;
     double expected_max_S;
-    //iVector features_indices(X.cols(),1);
+    
 
     std::vector<int> features_indices(X.cols());
     for (int i=0; i<X.cols(); i++){features_indices[i] = i; } 
-    // if(previuos_tree_node ==NULL){
-
-    //     if(max_features<INT_MAX){
-    //         std::mt19937 gen(random_state);
-    //         std::iota(features_indices.begin(), features_indices.end(), 0);
-    //         std::shuffle(features_indices.begin(), features_indices.end(), gen);
-    //         features_indices.resize(max_features); 
-    //         features_indices.erase(features_indices.begin() + max_features, features_indices.end());
-            
-    //     }
-    // }else 
-    // if(previuos_tree_node->get_features_indices().size()>0) {
-    //     //features_indices.resize(max_features);
-    //     features_indices = previuos_tree_node->get_features_indices();
-    // }
-    // this->random_state +=1;
+    
     double loss_parent = (y.array() - pred).square().sum();
     if(all_same(y)){
         //printf("all_same(y) \n");
         return new Node(split_value, loss_parent, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
     }
-    // if(previuos_tree_node ==NULL){
-    //     //for (int i=0; i<X.cols(); i++){features_indices(i) = i; } 
     
-    //     if(max_features<INT_MAX){
-    //         thread_local std::mt19937 gen(omp_get_thread_num());
-    //         std::shuffle(features_indices.data(), features_indices.data() + features_indices.size(), gen);
-    //         features_indices = features_indices.block(0,0,max_features,1);
-    //         //this->random_state +=1;
-    //     }
-    // }else 
-    // if(previuos_tree_node->get_features_indices().size()>0) {
-    //     features_indices = previuos_tree_node->get_features_indices();
-    // }
-
-
-    //printf("%d \n", features_indices.allFinite());
     
     
     
     
     tie(any_split, split_feature, split_value, score, y_var ,w_var,expected_max_S)  = find_split(X,y, g,h, features_indices);
-    if(any_split && (std::isnan(y_var)||std::isnan(w_var))){
-        double G=g.array().sum(), H=h.array().sum(), G2=g.array().square().sum(), H2=h.array().square().sum(), gxh=(g.array()*h.array()).sum();
-        double optimism = (G2 - 2.0*gxh*(G/H) + G*G*H2/(H*H)) / (H*n);
-
-        std::cout << "y_var: " << y_var << std::endl;
-        std::cout << "w_var: "<< w_var << std::endl;
-        std::cout << "n: "<< n << std::endl;
-        std::cout << "optimism: "<< optimism << std::endl;
-        std::cout << "expected_max_S: "<< expected_max_S << std::endl;
-        
-        
-        double y_0 = y(0);
-        bool same = true;
-        std::cout << "y"<<0 <<": "<< y_0 << std::endl;
-
-
-        for (size_t i = 1; i < y.size(); i++)
-        {
-            if(y_0 != y(i)){
-                same = false;
-            }
-            if(std::isnan(y_0) ||std::isnan(y(i))  ){
-                std::cout << "nan detected: "<< i << std::endl;
-            }
-            if(std::isnan(g(i))  ){
-                std::cout << "g"<<i <<": "<< g(i) << std::endl;
-            }
-        
-        }
-        std::cout << "all same: "<< same << std::endl;
-        throw exception("something wrong!") ;
-
-    }
+    
     if(depth>=this->max_depth){
-        //printf("max_depth: %d >= %d \n", depth,this->max_depth);
         return new Node(split_value, loss_parent, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
-        //return new Node(pred, n, y_var,w_var,features_indices);
+
     }
     if(y.rows()< this->min_split_sample){
-        //printf("min_split_sample \n");
         return new Node(split_value, loss_parent, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
     }
     if(!any_split){
-        //printf("any_split \n");
         return new Node(split_value, loss_parent, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
     }
 
-    // if(depth>=this->max_depth){
-    //     //printf("max_depth: %d >= %d \n", depth,this->max_depth);
-    //     return new Node(pred, n, y_var,w_var);
-    // }
-    // if(y.rows()< this->min_split_sample){
-    //     //printf("min_split_sample \n");
-    //     return new Node(pred, n, y_var,w_var);
-    // }
-    // if(!any_split){
-    //     //printf("any_split \n");
-    //     return new Node(pred ,n, y_var, w_var);
-    // }
-
-    if(score == std::numeric_limits<double>::infinity()){
-        printf("X.size %d y.size %d, reduction %f, expected_max_S %f, min_samples_leaf = %d \n", X.rows(), y.rows(),score,expected_max_S, min_samples_leaf);
-        cout<<"\n Two Dimensional Array is : \n";
-        for(int r=0; r<X.rows(); r++)
-        {
-                for(int c=0; c<X.cols(); c++)
-                {
-                        cout<<" "<<X(r,c)<<" ";
-                }
-                cout<<"\n";
-        }
-         cout<<"\n one Dimensional Array is : \n";
-        for(int c=0; c<y.size(); c++)
-        {
-                cout<<" "<<y(c)<<" ";
-        }
-        cout<<"\n";
-    }
-   
 
     dVector feature = X.col(split_feature);
 
@@ -538,19 +423,10 @@ Node* Tree::build_tree(const dMatrix  &X, const dVector &y, const dVector &g, co
     dVector g_left = g(mask_left,1); dVector h_left = h(mask_left,1);
     dVector g_right = g(mask_right,1); dVector h_right = h(mask_right,1);
     dVector weights_left  = weights(mask_left,1); dVector weights_right = weights(mask_right,1);
-
-
-    
-    //printf("loss_parent %f \n" ,loss_parent);
-    // dVector pred_left = dVector::Constant(y_left.size(),0,loss_function->link_function(y_left.array().mean()));
-    // dVector pred_right = dVector::Constant(y_right.size(),0,loss_function->link_function(y_right.array().mean()));
-    // double loss_left = (y_left.array() - y_left.array().mean()).square().sum();
-    // double loss_right = (y_right.array() - y_right.array().mean()).square().sum();
-    // printf("score comparison: %f, %f \n", score, (loss_parent - (loss_left+loss_right))/n);
     
     Node* node = new Node(split_value, loss_parent/n, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
     
-    double effect_profiling = (1.0 + expected_max_S)/2.0; 
+    double effect_profiling = (1.0 + expected_max_S)/2.0;
     
 
     if(previuos_tree_node !=NULL){//only applivable for random forest for remembering previous node sub features when updating a tree (or if max_features are less then total number of features)
@@ -575,12 +451,7 @@ Node* Tree::build_tree(const dMatrix  &X, const dVector &y, const dVector &g, co
         node->right_child->effect_profiling=effect_profiling;
         node->right_child->posterior_precision = 1.0/node->right_child->w_var; 
     }
-    // if(effect_profiling>1){
-    //             std::cout << "effect_profiling = " << effect_profiling << " expected_max_S = "<< expected_max_S << " n: " <<n <<std::endl;
-    //             //throw exception("effect_profiling < 1" );
-
-    //         } 
-
+ 
     return node;
 }
 
@@ -618,40 +489,29 @@ Node* Tree::update_node_obs(const dMatrix &X, Node* node){
  */
 void Tree::update(const dMatrix X,const dVector y, const dVector sample_weights){
     random_state = init_random_state;
-    // bootstrap_seed = init_random_state;
     std::lock_guard<std::mutex> lock(mutex);
-    //this->root = update_node_obs(X,this->root);
 
     
     dMatrix info = predict_info(X);
     dVector num_obs_in_nodes = info.col(4).array(); // n_d
 
-    double min_node_variance = info.col(2).array().minCoeff(); // 1/n sum_i^n w_var/nd
+    //double min_node_variance = info.col(2).array().minCoeff(); // 1/n sum_i^n w_var/nd
     double average_response_variance = info.col(3).array().mean(); // c^2
     
     n0 = total_obs;
     total_obs = y.size();
 
-    double epsilon = 1e-7;
-    double variance = (y.array() - y.array().mean()).square().mean()/y.size();
-    double precision = 1.0/(variance)/(double)total_obs;
-    //std::cout << "variance: " << variance << " precision: "<< precision << std::endl;
     dVector node_variance = info.col(2).array();
-    //std::cout << "min node_variance: " <<  node_variance.minCoeff() << " mean node_variance: " << node_variance.array().mean() << " max node_variance: " << node_variance.maxCoeff() << std::endl;
-    //std::cout << "min y_var/(w_var): " <<  node_variance.minCoeff() << " mean y_var/(w_var): " << node_variance.array().mean() << " max y_var/(w_var): " << node_variance.maxCoeff() << std::endl;
-    //dVector uwr = min_node_variance/node_variance.array();
+
     dVector uwr = average_response_variance*info.col(1).array();
-    //dVector uwr = average_node_variance/node_variance.array(); //average_response_variance*info.col(1).array();
-    //uwr.tail(total_obs-n1).setZero();
-    //std::cout << "min uwr: " <<  uwr.minCoeff() << " mean uwr: " << uwr.array().mean() << " max uwr: " << uwr.maxCoeff() << " n0: "<< n1<< std::endl;
-    //dVector uwr = ((average_response_variance/(num_obs_in_nodes.array()*node_variance.array()+epsilon)).array()).min(1);
-    //dVector uwr = info.col(5).array();
+    //dVector uwr = info.col(1).array();
+   
    
 
     
 
     dVector gammas = alpha + beta*uwr.array() ;//*uwr.array(); //gamma_i = y_var_bar(x_i)/(w_var(x_i))
-    std::cout << "min gamma: " <<  gammas.minCoeff() << " mean gamma: " << gammas.array().mean() << " max gamma: " << gammas.maxCoeff() << std::endl;
+    //std::cout << "min gamma: " <<  gammas.minCoeff() << " mean gamma: " << gammas.array().mean() << " max gamma: " << gammas.maxCoeff() << std::endl;
     pred_0 = loss_function->link_function(0);//
     dVector ypred1 = info.col(0).array() + pred_0; //prediction from previous tree
     dVector pred = dVector::Constant(y.size(),0,  pred_0) ;
@@ -673,11 +533,7 @@ Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, c
         printf("X.rows()<2 || y.rows()<2 \n");
         return NULL;
     }
-
-    double eps = 0.0;
-    if(_criterion ==1){ // for poisson need to ensure not log(0)
-        eps=0.0000000001;
-    }
+    
     int n = y.size();
     double G = g.array().sum();
     double H = h.array().sum();
@@ -690,25 +546,15 @@ Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, c
     double sum_gammas = gammas.array().sum();
 
 
-
-    //double pred = loss_function->link_function((y_sum+ypred1_sum)/((sum_weights+sum_gammas)) + eps) - pred_0;
-    double pred = -G/H;
-    //std::cout << "pred: " << pred << ", -G/H: " << -G/H<< std::endl;
-    
-    if(std::isnan(pred)|| std::isinf(pred)){//|| abs(pred +G/H)>0.000001
-        std::cout << "pred: " << pred << std::endl;
-        std::cout << "G: " << G << std::endl;
-        std::cout << "H: " << H << std::endl;
-        std::cout << "diff: " << abs(pred + G/H)<< std::endl;
-        std::cout << "n: " << n << std::endl;
-        std::cout << "y_sum: " << y_sum << std::endl;
-        std::cout << "ypred1_sum: " << ypred1_sum << std::endl;
-        std::cout << "ypred1 size: " << ypred1.size() << std::endl;
-        std::cout << "y size: " << y.size() << std::endl;
-        std::cout << "y: " << y.array().sum() << std::endl;
-        throw exception("pred is nan or inf: %f \n",pred);
-
+    double pred = loss_function->link_function((y_sum+ypred1_sum)/((sum_weights+sum_gammas))) - pred_0;// same as -G/H
+    //double pred = -G/H;
+    if (abs((-G/H) - pred)>0.0000001){
+        std::cout << "-G/H: " <<  -G/H<< " pred: "<< pred << " "<< abs((-G/H) - pred)<< std::endl;
     }
+    
+    
+    
+    
     bool any_split;
     double score;
     
@@ -726,62 +572,12 @@ Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, c
     double expected_max_S;
     std::vector<int> features_indices(X.cols());
     for (int i=0; i<X.cols(); i++){features_indices[i] = i; } 
-    // if(previuos_tree_node ==NULL){
 
-    //     if(max_features<INT_MAX){
-    //         std::mt19937 gen(random_state);
-    //         std::iota(features_indices.begin(), features_indices.end(), 0);
-    //         std::shuffle(features_indices.begin(), features_indices.end(), gen);
-    //         features_indices.resize(max_features); 
-    //         features_indices.erase(features_indices.begin() + max_features, features_indices.end());
-            
-    //     }
-    // }else 
-    // if(previuos_tree_node->get_features_indices().size()>0) {
-    //     //features_indices.resize(max_features);
-    //     features_indices = previuos_tree_node->get_features_indices();
-    // }
-    // this->random_state +=1;
 
- 
-    
-    
     
     
     tie(any_split, split_feature, split_value, score, y_var ,w_var,expected_max_S)  = find_split(X,y, g,h, features_indices);
-    if(any_split && (std::isnan(y_var)||std::isnan(w_var))){
-        double G=g.array().sum(), H=h.array().sum(), G2=g.array().square().sum(), H2=h.array().square().sum(), gxh=(g.array()*h.array()).sum();
-        double optimism = (G2 - 2.0*gxh*(G/H) + G*G*H2/(H*H)) / (H*n);
-
-        std::cout << "y_var: " << y_var << std::endl;
-        std::cout << "w_var: "<< w_var << std::endl;
-        std::cout << "n: "<< n << std::endl;
-        std::cout << "optimism: "<< optimism << std::endl;
-        std::cout << "expected_max_S: "<< expected_max_S << std::endl;
-        
-        
-        double y_0 = y(0);
-        bool same = true;
-        std::cout << "y"<<0 <<": "<< y_0 << std::endl;
-
-
-        for (size_t i = 1; i < y.size(); i++)
-        {
-            if(y_0 != y(i)){
-                same = false;
-            }
-            if(std::isnan(y_0) ||std::isnan(y(i))  ){
-                std::cout << "nan detected: "<< i << std::endl;
-            }
-            if(std::isnan(g(i))  ){
-                std::cout << "g"<<i <<": "<< g(i) << std::endl;
-            }
-        
-        }
-        std::cout << "all same: "<< same << std::endl;
-        throw exception("something wrong!") ;
-
-    }
+    
 
     if(depth>=this->max_depth){
         return new Node(pred, n, y_var,w_var);
@@ -794,17 +590,7 @@ Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, c
         return new Node(pred ,n, y_var, w_var);
     }
 
-    if(score == std::numeric_limits<double>::infinity()){
-        printf("X.size %d y.size %d, reduction %f, expected_max_S %f, min_samples_leaf = %d \n", X.rows(), y.rows(),score,expected_max_S, min_samples_leaf);
-        
-        cout<<"\n one Dimensional Array is : \n";
-        for(int c=0; c<y.size(); c++)
-        {
-                cout<<" "<<y(c)<<" ";
-        }
-        cout<<"\n";
-    }
-   
+
 
     dVector feature = X.col(split_feature);
 
@@ -828,18 +614,13 @@ Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, c
     Node* node = new Node(split_value, loss_parent/n, score, split_feature, y.rows() , pred, y_var, w_var,features_indices);
     double effect_profiling = (1.0 + expected_max_S)/2.0; 
     
-    
-
 
     node->left_child = update_tree( X_left, y_left, g_left,h_left,gammas_left, depth+1,NULL,ypred1_left,weights_left);
     
     if(node->left_child!=NULL){
         node->left_child->w_var*=effect_profiling;
         node->left_child->parent_expected_max_S=expected_max_S;
-        node->left_child->effect_profiling=effect_profiling;
-        //node->left_child->w_var = 1.0/(1.0/node->left_child->w_var + (n_delta_fra)*node->left_child->n_samples/node->left_child->y_var); 
-         //std::cout << "y_var/w_var " << y_var/(w_var) << " n: "<< n << std::endl;
-        
+        node->left_child->effect_profiling=effect_profiling;     
     }
     
     node->right_child = update_tree(X_right, y_right,g_right,h_right, gammas_right, depth+1,NULL,ypred1_right,weights_right) ;
@@ -848,16 +629,8 @@ Node* Tree::update_tree(const dMatrix  &X, const dVector &y, const dVector &g, c
         node->right_child->w_var *=effect_profiling;
         node->right_child->parent_expected_max_S=expected_max_S;
         node->right_child->effect_profiling=effect_profiling;
-        // std::cout << "y_var/w_var " << y_var/(w_var) << " n: "<< n << std::endl;
-        //node->right_child->w_var = 1.0/(1.0/node->right_child->w_var + (n_delta_fra)*node->right_child->n_samples/node->right_child->y_var); 
+
     }
-    //std::cout << "y_var: " <<node->y_var << ", y_var_clt: " << (y.array() - (-G/H)).square().mean()<< ", w_var: " << node->w_var<< std::endl;
-
-    // if(effect_profiling>1){
-    //             std::cout << "effect_profiling = " << effect_profiling << " expected_max_S = "<< expected_max_S << " n: " <<n <<std::endl;
-    //             //throw exception("effect_profiling < 1" );
-
-    //         } 
     return node;
 }
 

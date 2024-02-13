@@ -26,16 +26,16 @@ def stability_measure(pred1, pred2):
     return np.mean((pred1- pred2)**2)
 
 # from examples in R package ISLR2, https://cran.r-project.org/web/packages/ISLR2/ISLR2.pdf
-datasets =["Boston", "Carseats","College", "Hitters", "Wage"]#["Boston"] #
-targets = ["medv", "Sales", "Apps", "Salary", "wage"] #["medv"] # 
+datasets =["Boston", "Carseats","College", "Hitters", "Wage"]#["Hitters"] #
+targets =  ["medv", "Sales", "Apps", "Salary", "wage"] #["Salary"] #
 
 plot_info  = {ds:[] for ds in datasets} # (x,y,colors,marker)
 
 
 
 hyperparameters = {
-    "alpha": np.round(np.arange(0,1.01,0.2),2),
-     "beta": np.round(np.arange(0,1.01,0.2),2)
+    "alpha": np.round(np.arange(0,2.01,0.2),2),#[0, 0.2,0.4 ,0.6], #
+     "beta": np.round(np.arange(0,2.01,0.2),2)
 }
 search_grid = list(itertools.product(hyperparameters["alpha"], hyperparameters["beta"]))
 
@@ -195,7 +195,7 @@ else:
     # adjust spacing between subplots
     fig.tight_layout()
     #plt.show()
-    plt.savefig(f"StableTrees_examples\plots\main_experiment_ISLR_minw_w.png")
+    plt.savefig(f"StableTrees_examples\plots\main_experiment_ISLR.png")
     plt.close()
 
 
