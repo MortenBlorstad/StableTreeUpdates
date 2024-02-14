@@ -122,7 +122,7 @@ if compute:
 
     #     old_df.to_csv('results/tree_CH__results_alpha_beta.csv', index=False)
     # else:
-    df.to_csv('StableTrees_examples/results/main_experiment_remake.csv', index=False)
+    df.to_csv('StableTrees_examples/results/main_experiment.csv', index=False)
 else:
 
     #######################
@@ -152,7 +152,7 @@ else:
     plt.rcParams.update(plot_params)
 
 
-    df =pd.read_csv('StableTrees_examples/results/main_experiment_remake.csv')
+    df =pd.read_csv('StableTrees_examples/results/main_experiment.csv')
 
         
     plot_info = df[df.dataset == "California"]
@@ -214,5 +214,5 @@ else:
     fig.tight_layout()
     fig.subplots_adjust(top=0.90)
     #plt.show()
-    plt.savefig(f"StableTrees_examples\plots\\main_experiment_remake.png")
+    plt.savefig(f"StableTrees_examples\plots\\main_experiment.png")
     plt.close()
