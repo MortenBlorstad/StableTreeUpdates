@@ -49,8 +49,8 @@ import itertools
 
 
 
-df_ISLR =pd.read_csv('StableTrees_examples/results/main_experiment_ISLR_remake.csv')
-df_california  = pd.read_csv('StableTrees_examples/results/main_experiment_remake.csv')
+df_ISLR =pd.read_csv('StableTrees_examples/results/main_experiment_ISLR.csv')
+df_california  = pd.read_csv('StableTrees_examples/results/main_experiment.csv')
 
 df = pd.concat([df_california,df_ISLR], ignore_index=True)
 
@@ -141,5 +141,5 @@ fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.0
 fig.tight_layout()
 fig.subplots_adjust(top=0.9)
 
-plt.savefig(f"StableTrees_examples\plots\\main_experiment_all_change_remake.png")
+plt.savefig(f"StableTrees_examples\plots\\main_experiment_all.png")
 plt.close()

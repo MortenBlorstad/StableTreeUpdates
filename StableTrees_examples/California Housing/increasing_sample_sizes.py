@@ -34,19 +34,25 @@ def color_scatter(alpha, beta):
             return "#F0E442" # ABU
         if alpha>0 and beta==0:
             return "#CC79A7" # SL
-        if 0<alpha<0.5:
-            return "#edbb4c" # combi of SL and ABU
-        if 0<alpha<0.8:
+        if alpha<0.4:
+            return "#f0c566" # combi of SL and ABU
+        elif alpha<1:
             return "#E69F00" # combi of SL and ABU
-        return "#b87f00" 
+        elif alpha<1.2:
+            return "#b87f00" # combi of SL and ABU
+        elif alpha<2:
+            return "#8a5f00" # combi of SL and ABU
+        elif alpha<2.5:
+            return "#452f00" # combi of SL and ABU
+        return "#E69F00" 
 
 criterion = "mse"
 models = {  
                 "baseline": Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=0,beta=0),
-                "SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0),
-                "SLABU": Tree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=1.2),
-                "SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.4,beta=2),
-                "SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.6,beta=2),
+                "SL":Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True, alpha=2,beta=0.2),
+                "SLABU": Tree(criterion = criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.2,beta=0.6),
+                "SLABU1": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=0.4,beta=0.6),
+                "SLABU2": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1,beta=1),
                 "SLABU3": Tree(criterion=criterion,min_samples_leaf=5,adaptive_complexity=True, alpha=1.2,beta=0.4)
                 }
 
@@ -177,6 +183,6 @@ if not compute:
     plt.legend(loc='upper left',fontsize="20")
     adjust_text(texts,add_objects=scatters,ax= ax)
     plt.tight_layout()
-    plt.savefig(f"StableTrees_examples\plots\\varied_sample_size_experiment_remake.png")
+    plt.savefig(f"StableTrees_examples\plots\\varied_sample_size_experiment.png")
     plt.close()
  
