@@ -38,9 +38,9 @@ plot_params = {"ytick.color" : "black",
           "font.serif" : ["Computer Modern Serif"]}
 
 criterion = "mse"
-abu = Tree(criterion = criterion,min_samples_leaf=30, adaptive_complexity=True,alpha=0,beta=1)
+abu = Tree(criterion = criterion,min_samples_leaf=5, adaptive_complexity=True,alpha=0,beta=1)
 np.random.seed(SEED)
-n = 100
+n = 1000
 noise = 2
 x = np.sort(np.random.uniform(-4,4,(n,1)),axis=0) #np.random.normal(0,noise/2,(n,1)) #
 y = x.ravel()**2 + np.random.normal(0,noise,n)
@@ -51,7 +51,7 @@ y = x.ravel()**2 + np.random.normal(0,noise,n)
 x_test = np.sort(np.random.uniform(-4,4,(1000,1)),axis=0) #np.sort(np.random.normal(0,noise/2,(1000,1)),axis=0) #
 y_test = x_test.ravel()**2 +np.random.normal(0,noise,1000)
 
-n_t = 100
+n_t = 1000
 x_t = np.random.uniform(-4,4,(n_t,1))  #np.random.normal(0,noise/2,(n,1)) #  
 y_t = x_t.ravel()**2  + np.random.normal(0,noise,n_t)
 
@@ -74,13 +74,13 @@ y_hat = abu.predict(x_test)
 var_y_hat = info[:,2]
 var_y = info[:,3]
 #gamma = (1+var_y)/(1+var_y_hat)
-gamma = ((var_y)/(var_y_hat))
+gamma = info[:,1]*info[:,4]
 upper_bound = y_hat + np.sqrt(var_y_hat)
 lower_bound = y_hat - np.sqrt(var_y_hat)
 
 
 #-----------
-f, ((ax1,ax2,ax3,ax4),( ax5, ax6,ax7,ax8)) = plt.subplots(2, 4, figsize = (16, 8),dpi=100)
+f, ((ax1,ax2,ax3),( ax5, ax6,ax7)) = plt.subplots(2, 3, figsize = (16, 8),dpi=100)
 norm_var  = Normalize(vmin=0, vmax=max(var_y_hat))
 cmap_var  = plt.get_cmap('Oranges')
 cmap_y_var  = plt.get_cmap('Blues')
@@ -133,28 +133,6 @@ sm_gamma  = ScalarMappable(cmap=cmap_gamma, norm=norm_gamma)
 sm_gamma.set_array([])  # dummy empty array for the colorbar
 cbar = plt.colorbar(sm_gamma, label=r'$\gamma$', ax=ax3)
 
-#-----------
-gamma_tree =  info[:,1]
-norm_gamma_tree  = Normalize(vmin=0, vmax=np.max(gamma_tree))#np.min(gamma_tree)
-
-print(np.min(gamma_tree))
-for i in range(len(x_test) - 1):
-    ax4.fill_betweenx(y =[-7, np.max(y_hat) + 5], x1=x_test[i], x2=x_test[i + 1], color=cmap_gamma(norm_gamma_tree (gamma_tree[i])))
-
-
-
-
-ax4.plot(x_test, y_hat, label='Predicted Y', c = "black")
-ax4.scatter(x_test, y_test, c = "red",s=1)
-
-#plt.fill_between(x.ravel(), lower_bound, upper_bound, alpha=0.3, label='Uncertainty')
-# Add colorbar
-sm_gamma  = ScalarMappable(cmap=cmap_gamma, norm=norm_gamma_tree)
-sm_gamma.set_array([])  # dummy empty array for the colorbar
-cbar = plt.colorbar(sm_gamma, label=r'$\frac{\gamma}{node\;obs}$', ax=ax4)
-
-
-
 # =======
 
 abu.update(x2,y2)
@@ -164,13 +142,14 @@ info=abu.predict_info(x_test)
 y_hat = abu.predict(x_test)
 var_y_hat = info[:,2]
 var_y = info[:,3]
-gamma = (var_y)/(var_y_hat)
-#gamma = ((1+var_y)/(1+var_y_hat))
+gamma =  info[:,1]*info[:,4]
 upper_bound = y_hat + np.sqrt(var_y_hat)
 lower_bound = y_hat - np.sqrt(var_y_hat)
 
 
 #-----------
+norm_y_var  = Normalize(vmin=0, vmax=max(var_y))
+norm_var  = Normalize(vmin=0, vmax=max(var_y_hat))
 
 cmap_var  = plt.get_cmap('Oranges')
 cmap_y_var  = plt.get_cmap('Blues')
@@ -187,7 +166,6 @@ sm.set_array([])  # dummy empty array for the colorbar
 cbar = plt.colorbar(sm, label='Prediction variance', ax=ax5)
 
 #-----------
-
 
 
 for i in range(len(x_test) - 1):
@@ -222,25 +200,4 @@ sm_gamma  = ScalarMappable(cmap=cmap_gamma, norm=norm_gamma)
 sm_gamma.set_array([])  # dummy empty array for the colorbar
 cbar = plt.colorbar(sm_gamma, label=r'$\gamma$', ax=ax7)
 
-
-
-#-----------
-gamma_tree =  info[:,1]
-
-norm_gamma_tree  = Normalize(vmin=0, vmax=np.max(gamma_tree))#np.min(gamma_tree)
-print(np.min(gamma_tree))
-for i in range(len(x_test) - 1):
-    ax8.fill_betweenx(y =[-7, np.max(y_hat) + 5], x1=x_test[i], x2=x_test[i + 1], color=cmap_gamma(norm_gamma_tree (gamma_tree[i])))
-
-
-
-
-ax8.plot(x_test, y_hat, label='Predicted Y', c = "black")
-ax8.scatter(x_test, y_test, c = "red",s=1)
-
-#plt.fill_between(x.ravel(), lower_bound, upper_bound, alpha=0.3, label='Uncertainty')
-# Add colorbar
-sm_gamma  = ScalarMappable(cmap=cmap_gamma, norm=norm_gamma_tree)
-sm_gamma.set_array([])  # dummy empty array for the colorbar
-cbar = plt.colorbar(sm_gamma, label=r'$\frac{\gamma}{node\;obs}$', ax=ax8)
 plt.show()
